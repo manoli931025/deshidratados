@@ -1,24 +1,29 @@
-import logo from './logo.svg';
+import { useState } from 'react';
+import { CartProvider } from './context/CartContext';
+import Header from './components/Header';
+import Hero, { Marquee } from './components/Hero';
+import Catalog from './components/Catalog';
+import { Process, Testimonials, Faq, Newsletter, Footer } from './components/Sections';
+import CartDrawer from './components/CartDrawer';
 import './App.css';
 
 function App() {
+  const [cartOpen, setCartOpen] = useState(false);
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <CartProvider>
+      <Header onCartOpen={() => setCartOpen(true)} />
+      <main>
+        <Hero />
+        <Marquee />
+        <Catalog />
+        <Process />
+        <Testimonials />
+        <Faq />
+        <Newsletter />
+      </main>
+      <Footer />
+      <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+    </CartProvider>
   );
 }
 
