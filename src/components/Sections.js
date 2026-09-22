@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Reveal from './Reveal';
-import { SHOP } from '../data/config';
+import { useShop } from '../data/shop';
 
 const STEPS = [
   { n: '01', t: 'Cosecha', d: 'Compramos fruta y verdura de temporada directo a productores locales, en su punto exacto de maduración.' },
@@ -120,10 +120,11 @@ export function Newsletter() {
 }
 
 export function Footer() {
+  const { shop } = useShop();
   return (
     <footer className="footer">
       <div className="wrap">
-        <div className="foot-mark" aria-hidden="true">{SHOP.name.toUpperCase()}</div>
+        <div className="foot-mark" aria-hidden="true">{shop.name.toUpperCase()}</div>
         <div className="foot-grid">
           <div>
             <h4>Tienda</h4>
@@ -134,7 +135,7 @@ export function Footer() {
           </div>
           <div>
             <h4>Contacto</h4>
-            <a href={`https://wa.me/${SHOP.whatsapp}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+            <a href={`https://wa.me/${shop.whatsapp}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>
             <a href="mailto:hola@solaria.mx">hola@solaria.mx</a>
             <p>Instagram @solaria.seca</p>
           </div>
@@ -146,7 +147,7 @@ export function Footer() {
           </div>
         </div>
         <div className="foot-bottom">
-          <span>© {new Date().getFullYear()} {SHOP.name} · Deshidratados artesanales</span>
+          <span>© {new Date().getFullYear()} {shop.name} · Deshidratados artesanales</span>
           <span>Secado lento, sin prisa ☀</span>
         </div>
       </div>

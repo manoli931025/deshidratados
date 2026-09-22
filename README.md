@@ -1,70 +1,57 @@
-# Getting Started with Create React App
+# Solaria · Deshidratados
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Tienda en línea de frutas y verduras deshidratadas hecha con **React (Create React App)** + **Supabase** y publicada en **GitHub Pages**. Incluye un panel de administración propio (tipo Django admin) en la ruta `/#/admin`.
 
-## Available Scripts
+## Características
 
-In the project directory, you can run:
+- Catálogo con categorías, búsqueda y precios por presentación (gramos).
+- Carrito de compras con resumen del pedido y total.
+- Checkout corto: nombre + teléfono → registra el pedido en Supabase y abre WhatsApp para confirmar.
+- Panel de administración: productos (subir imágenes), categorías, pedidos y configuración (nombre, WhatsApp, envío gratis).
+- Sin Supabase configurado, la tienda funciona con datos de demostración (`src/data/products.js`).
 
-### `npm start`
+## Puesta en marcha
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 1. Crear el proyecto en Supabase
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+1. Regístrate en <https://supabase.com> y crea un proyecto nuevo.
+2. Ve a **SQL Editor → New query**, pega el contenido de [`supabase/schema.sql`](supabase/schema.sql) y ejecútalo (**Run**).
+   - Esto crea las tablas (`categories`, `products`, `variants`, `orders`, `settings`), activa Row Level Security, crea el bucket de imágenes `product-images` e inserta el catálogo de demostración.
+3. Crear el usuario administrador del panel: **Authentication → Users → Add user** (email + contraseña).
 
-### `npm test`
+### 2. Configurar el proyecto local
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+1. Copia `.env.example` a `.env.local` y completa los valores con los de tu proyecto (en Supabase, **Project Settings → API**):
+   - `REACT_APP_SUPABASE_URL` → URL del proyecto (ej. `https://xxxx.supabase.co`).
+   - `REACT_APP_SUPABASE_ANON_KEY` → anon/public key.
+   - `.env.local` está en `.gitignore`: nunca se suben las claves.
+2. Instala dependencias y arranca:
 
-### `npm run build`
+```bash
+npm install
+npm start
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+3. Abre <http://localhost:3000> para ver la tienda y <http://localhost:3000/#/admin> para el panel (inicia sesión con el usuario que creaste).
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 3. Publicar en GitHub Pages (deploy automático)
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+1. Sube los cambios a la rama `main` del repositorio (`git push`).
+2. En el repositorio de GitHub: **Settings → Secrets and variables → Actions**, agrega los secrets:
+   - `REACT_APP_SUPABASE_URL`
+   - `REACT_APP_SUPABASE_ANON_KEY`
+3. El workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) compila la app con esos valores y la publica automáticamente en GitHub Pages. El sitio queda en `https://<usuario>.github.io/<repositorio>/` y el panel en `.../#/admin`.
 
-### `npm run eject`
+## Scripts
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+- `npm start` — ejecuta la app en modo desarrollo.
+- `npm run build` — genera el build de producción en `build/`.
+- `npm test` — ejecuta las pruebas.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Estructura relevante
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- `supabase/schema.sql` — migración completa de la base de datos (tablas, RLS, storage, seed).
+- `src/data/supabase.js` — cliente de Supabase, detector de configuración y utilidades de imagen.
+- `src/data/shop.js` — estado global de la tienda (`ShopProvider`/`useShop`) y registro de pedidos (`submitOrder`).
+- `src/admin/` — panel de administración (login, productos, categorías, pedidos, configuración).
+- `.github/workflows/deploy.yml` — despliegue automático a GitHub Pages inyectando los secrets de Supabase.

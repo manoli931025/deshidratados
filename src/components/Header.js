@@ -1,24 +1,25 @@
 import { useEffect, useRef, useState } from 'react';
 import { useCart } from '../context/CartContext';
-import { SHOP } from '../data/config';
-
-const MSGS = [
-  'Envío gratis en pedidos mayores a $' + 600,
-  'Nueva cosecha: mango ataulfo de Nayarit',
-  'Pedidos por WhatsApp · respuesta el mismo día',
-];
+import { useShop } from '../data/shop';
 
 export default function Header({ onCartOpen }) {
   const { itemCount, total } = useCart();
+  const { shop } = useShop();
   const [msg, setMsg] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [menu, setMenu] = useState(false);
   const countRef = useRef(null);
 
+  const MSGS = [
+    `Envío gratis en pedidos mayores a $${shop.freeShip}`,
+    'Nueva cosecha: mango ataulfo de Nayarit',
+    'Pedidos por WhatsApp · respuesta el mismo día',
+  ];
+
   useEffect(() => {
     const t = setInterval(() => setMsg(m => (m + 1) % MSGS.length), 4000);
     return () => clearInterval(t);
-  }, []);
+  }, [MSGS.length]);
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -37,7 +38,7 @@ export default function Header({ onCartOpen }) {
       <div className="announce" aria-hidden="true"><span key={msg}>{MSGS[msg]}</span></div>
       <header className={'site-header' + (scrolled ? ' scrolled' : '')}>
         <div className="wrap head-in">
-          <a href="#top" className="logo">☀ {SHOP.name}<small>deshidratados · est. 2019</small></a>
+          <a href="#top" className="logo">☀ {shop.name}<small>deshidratados · est. 2019</small></a>
           <nav className="main">
             <a href="#catalogo">Catálogo</a>
             <a href="#proceso">Proceso</a>

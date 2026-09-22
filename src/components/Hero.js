@@ -1,6 +1,7 @@
-import { products } from '../data/products';
+import { useShop } from '../data/shop';
 
 export default function Hero() {
+  const { products } = useShop();
   const desde = Math.min(...products.flatMap(p => p.variants.map(v => v.price)));
   return (
     <section className="hero" id="top">

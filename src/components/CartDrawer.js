@@ -1,14 +1,11 @@
 import { useCart } from '../context/CartContext';
-import { SHOP } from '../data/config';
+import { useShop } from '../data/shop';
+import CheckoutForm from './CheckoutForm';
 
 export default function CartDrawer({ isOpen, onClose }) {
   const { cart, updateQuantity, removeFromCart, clearCart, total, itemCount } = useCart();
-  const pct = Math.min(100, (total / SHOP.freeShip) * 100);
-  const waMessage = encodeURIComponent(
-    `¡Hola ${SHOP.name}! ☀️ Quiero hacer este pedido:\n\n` +
-    cart.map(i => `• ${i.quantity}× ${i.name} (${i.variant.label}) — $${i.quantity * i.variant.price}`).join('\n') +
-    `\n\nTotal: $${total}\n¿Me confirman disponibilidad y costo de envío? ¡Gracias!`
-  );
+  const { shop } = useShop();
+  const pct = Math.min(100, (total / shop.freeShip) * 100);
 
   return (
     <>
@@ -48,12 +45,10 @@ export default function CartDrawer({ isOpen, onClose }) {
           <div className="drawer-foot">
             <div className="ship-bar"><div className="ship-fill" style={{ width: pct + '%' }} /></div>
             <p className="ship-msg">
-              {total >= SHOP.freeShip ? '🎉 ¡Tienes envío gratis!' : `Te faltan $${SHOP.freeShip - total} para envío gratis`}
+              {total >= shop.freeShip ? '🎉 ¡Tienes envío gratis!' : `Te faltan $${shop.freeShip - total} para envío gratis`}
             </p>
             <div className="subtotal-row"><span>Subtotal</span><b>${total}</b></div>
-            <a className="wa-btn" href={`https://wa.me/${SHOP.whatsapp}?text=${waMessage}`} target="_blank" rel="noopener noreferrer">
-              Pedir por WhatsApp →
-            </a>
+            <CheckoutForm items={cart} total={total} onPlaced={clearCart} />
             <button className="clear-btn" onClick={clearCart}>Vaciar canasta</button>
           </div>
         )}

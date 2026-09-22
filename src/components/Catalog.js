@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { products, categories } from '../data/products';
+import { useShop } from '../data/shop';
 import { useCart } from '../context/CartContext';
 import Reveal from './Reveal';
 
@@ -47,12 +47,13 @@ function ProductCard({ product }) {
 }
 
 export default function Catalog() {
+  const { products, categories } = useShop();
   const [cat, setCat] = useState('todos');
   const [q, setQ] = useState('');
   const list = useMemo(() => products.filter(p =>
     (cat === 'todos' || p.category === cat) &&
     (p.name + ' ' + p.description).toLowerCase().includes(q.toLowerCase())
-  ), [cat, q]);
+  ), [cat, q, products]);
 
   return (
     <section id="catalogo" className="section">
