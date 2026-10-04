@@ -28,7 +28,7 @@ export default function Login() {
 
   return (
     <div className="adm-plain">
-      <form className="adm-card adm-login" onSubmit={onSubmit}>
+      <form className="adm-card adm-login adm-form" onSubmit={onSubmit}>
         <h1>☀ Solaria · Panel</h1>
         <p className="adm-sub">Inicia sesión para administrar la tienda.</p>
         <label>Correo
