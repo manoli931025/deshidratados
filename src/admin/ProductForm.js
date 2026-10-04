@@ -54,12 +54,26 @@ export default function ProductForm() {
         setLoading(false);
         return;
       }
-      setForm(data);
+      setForm(f => ({
+        ...f,
+        ...data,
+        name: data.name ?? '',
+        slug: data.slug ?? '',
+        category_id: data.category_id ?? '',
+        description: data.description ?? '',
+        origin: data.origin ?? '',
+        badge: data.badge ?? '',
+        image: data.image ?? '',
+        rating: data.rating ?? 0,
+        reviews: data.reviews ?? 0,
+        sort_order: data.sort_order ?? 1,
+        active: data.active ?? true
+      }));
       setLoading(false);
       const vRes = await supabase.from('variants').select('*').eq('product_id', data.id);
       if (!alive) return;
       setVariants(vRes.data && vRes.data.length
-        ? vRes.data.map(v => ({ weight: v.weight, label: v.label, price: String(v.price) }))
+        ? vRes.data.map(v => ({ weight: v.weight ?? '', label: v.label ?? '', price: String(v.price ?? '') }))
         : [emptyVariant()]);
     })();
     return () => { alive = false; };
@@ -92,16 +106,17 @@ export default function ProductForm() {
   };
 
   const upsertProduct = async () => {
-    if (!form.slug.trim()) {
-      const auto = slugify(form.name);
+    if (!(form.slug || '').trim()) {
+      const auto = slugify(form.name || '');
       if (auto) form.slug = auto;
     }
-    if (!form.name.trim() || !form.slug.trim()) throw new Error('Faltan nombre y etiqueta (slug).');
+    if (!(form.name || '').trim() || !(form.slug || '').trim()) throw new Error('Faltan nombre y etiqueta (slug).');
+    const slugClean = form.slug.trim();
 
     let image = form.image || '';
     if (file) {
       const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-      const path = `products/${form.slug}/${Date.now()}.${ext}`;
+      const path = `products/${slugClean}/${Date.now()}.${ext}`;
       const { error: upError } = await supabase.storage
         .from(IMAGES_BUCKET)
         .upload(path, file, { upsert: true });
@@ -110,14 +125,14 @@ export default function ProductForm() {
     }
 
     const payload = {
-      name: form.name.trim(),
-      slug: form.slug.trim(),
+      name: (form.name || '').trim(),
+      slug: slugClean,
       category_id: form.category_id || null,
-      description: form.description.trim(),
-      origin: form.origin.trim(),
+      description: (form.description || '').trim(),
+      origin: (form.origin || '').trim(),
       rating: Number(form.rating) || 0,
       reviews: Number(form.reviews) || 0,
-      badge: form.badge.trim() || null,
+      badge: (form.badge || '').trim() || null,
       image,
       active: Boolean(form.active),
       sort_order: Number(form.sort_order) || 1
@@ -139,11 +154,11 @@ export default function ProductForm() {
     if (delError) throw new Error(delError.message);
 
     const toInsert = variants
-      .filter(v => v.label.trim() && String(v.price).trim() !== '')
+      .filter(v => (v.label || '').trim() && String(v.price ?? '').trim() !== '')
       .map(v => ({
         product_id: productId,
-        weight: (v.weight || String(v.label).replace(/[^0-9.]/g, '')).trim() || '100',
-        label: v.label.trim(),
+        weight: (v.weight || String(v.label ?? '').replace(/[^0-9.]/g, '')).trim() || '100',
+        label: (v.label || '').trim(),
         price: Number(v.price) || 0
       }));
     if (toInsert.length) {

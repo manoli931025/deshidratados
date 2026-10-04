@@ -129,7 +129,7 @@ on conflict (slug) do nothing;
 
 insert into public.settings (key, value) values
   ('shopName', 'Solaria'),
-  ('whatsapp', '5215500000000'),
+  ('whatsapp', '5354410057'),
   ('freeShip', '600')
 on conflict (key) do nothing;
 
