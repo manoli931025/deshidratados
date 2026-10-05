@@ -16,10 +16,18 @@ export function useShop() {
 
 const DEFAULT_CATS = [{ id: 'todos', label: 'Todos' }];
 
-function mapProduct(row, catBySlug, variantsByProduct) {
+function mapProduct(row, catBySlug, variantsByProduct, presById) {
   const vs = (variantsByProduct[row.id] || [])
     .sort((a, b) => Number(a.weight || '0') - Number(b.weight || '0'))
-    .map(v => ({ id: v.weight || v.label, label: v.label, price: Number(v.price) }));
+    .map(v => {
+      const pres = v.presentation_id && presById[v.presentation_id] ? presById[v.presentation_id] : '';
+      return {
+        id: v.id,
+        label: pres ? `${pres} · ${v.label}` : v.label,
+        price: Number(v.price),
+        presentation: pres || null
+      };
+    });
   return {
     id: row.slug,
     name: row.name,
@@ -35,22 +43,26 @@ function mapProduct(row, catBySlug, variantsByProduct) {
 }
 
 async function loadFromSupabase() {
-  const [{ data: cats }, { data: prods }, { data: vars }, { data: settings }] = await Promise.all([
+  const [{ data: cats }, { data: prods }, { data: vars }, { data: settings }, { data: presents }] = await Promise.all([
     supabase.from('categories').select('*').order('sort_order'),
     supabase.from('products').select('*').eq('active', true).order('sort_order'),
     supabase.from('variants').select('*').order('weight'),
-    supabase.from('settings').select('key, value').in('key', SETTINGS_KEYS)
+    supabase.from('settings').select('key, value').in('key', SETTINGS_KEYS),
+    supabase.from('presentations').select('*')
   ]);
 
   const catBySlug = {};
   (cats || []).forEach(c => { catBySlug[c.id] = c; });
+
+  const presById = {};
+  (presents || []).forEach(p => { presById[p.id] = p.name; });
 
   const variantsByProduct = {};
   (vars || []).forEach(v => {
     (variantsByProduct[v.product_id] = variantsByProduct[v.product_id] || []).push(v);
   });
 
-  const list = (prods || []).map(p => mapProduct(p, catBySlug, variantsByProduct));
+  const list = (prods || []).map(p => mapProduct(p, catBySlug, variantsByProduct, presById));
   return {
     products: list,
     categories: [...DEFAULT_CATS, ...(cats || []).map(c => ({ id: c.slug, label: c.label }))],

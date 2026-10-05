@@ -5,7 +5,7 @@ import { supabase, publicImageUrl, IMAGES_BUCKET } from '../data/supabase';
 const noAccents = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const slugify = (s) => noAccents(s.toLowerCase()).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
 
-const emptyVariant = () => ({ weight: '', label: '', price: '' });
+const emptyVariant = () => ({ weight: '', label: '', price: '', presentation_id: '' });
 
 export default function ProductForm() {
   const { slug } = useParams();
@@ -13,6 +13,7 @@ export default function ProductForm() {
   const navigate = useNavigate();
 
   const [cats, setCats] = useState([]);
+  const [presList, setPresList] = useState([]);
   const [form, setForm] = useState({
     name: '',
     slug: '',
@@ -38,6 +39,10 @@ export default function ProductForm() {
           setCats(data);
           if (isNew && data.length) setForm(f => ({ ...f, category_id: data[0].id }));
         }
+      });
+    supabase.from('presentations').select('*').order('sort_order')
+      .then(({ data, error }) => {
+        if (!error && data) setPresList(data);
       });
   }, [isNew]);
 
@@ -69,7 +74,12 @@ export default function ProductForm() {
       const vRes = await supabase.from('variants').select('*').eq('product_id', data.id);
       if (!alive) return;
       setVariants(vRes.data && vRes.data.length
-        ? vRes.data.map(v => ({ weight: v.weight ?? '', label: v.label ?? '', price: String(v.price ?? '') }))
+        ? vRes.data.map(v => ({
+            weight: v.weight ?? '',
+            label: v.label ?? '',
+            price: String(v.price ?? ''),
+            presentation_id: v.presentation_id ?? ''
+          }))
         : [emptyVariant()]);
     })();
     return () => { alive = false; };
@@ -153,7 +163,8 @@ export default function ProductForm() {
         product_id: productId,
         weight: (v.weight || String(v.label ?? '').replace(/[^0-9.]/g, '')).trim() || '100',
         label: (v.label || '').trim(),
-        price: Number(v.price) || 0
+        price: Number(v.price) || 0,
+        presentation_id: v.presentation_id || null
       }));
     if (toInsert.length) {
       const { error } = await supabase.from('variants').insert(toInsert);
@@ -236,16 +247,20 @@ export default function ProductForm() {
 
         <h3>Precios por presentación</h3>
         <div className="adm-vars">
-          <div className="adm-var-head"><span>Gramos</span><span>Etiqueta</span><span>Precio $</span><span></span></div>
+          <div className="adm-var-head"><span>Presentación</span><span>Gramos</span><span>Etiqueta</span><span>Precio $</span><span></span></div>
           {variants.map((v, i) => (
             <div className="adm-var-row" key={i}>
+              <select value={v.presentation_id} onChange={setVariant(i, 'presentation_id')}>
+                <option value="">— Sin presentación —</option>
+                {presList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
               <input value={v.weight} onChange={setVariant(i, 'weight')} placeholder="100" />
               <input value={v.label} onChange={setVariant(i, 'label')} placeholder="100 g" required />
               <input value={v.price} onChange={setVariant(i, 'price')} placeholder="45" required />
               <button type="button" className="adm-linkbtn danger" onClick={() => setVariants(vs => vs.filter((_, idx) => idx !== i))}>Quitar</button>
             </div>
           ))}
-          <button type="button" className="adm-link" onClick={() => setVariants(vs => [...vs, emptyVariant()])}>+ Agregar presentación</button>
+          <button type="button" className="adm-link" onClick={() => setVariants(vs => [...vs, emptyVariant()])}>+ Agregar precio</button>
         </div>
 
         <div className="adm-form-actions">

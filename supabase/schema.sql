@@ -32,6 +32,14 @@ create table if not exists public.products (
   created_at  timestamptz not null default now()
 );
 
+create table if not exists public.presentations (
+  id          uuid primary key default gen_random_uuid(),
+  slug        text unique not null,
+  name        text not null,
+  sort_order  int  not null default 0,
+  created_at  timestamptz not null default now()
+);
+
 create table if not exists public.variants (
   id          uuid primary key default gen_random_uuid(),
   product_id  uuid not null references public.products(id) on delete cascade,
@@ -39,6 +47,10 @@ create table if not exists public.variants (
   label       text not null,
   price       numeric(10,2) not null default 0
 );
+
+-- Presentación de venta (rodaja, media lida, polvo…) ligada a cada precio
+alter table public.variants
+  add column if not exists presentation_id uuid references public.presentations(id) on delete set null;
 
 create table if not exists public.orders (
   id            uuid primary key default gen_random_uuid(),
@@ -58,6 +70,7 @@ create table if not exists public.settings (
 -- Indices útiles
 create index if not exists idx_products_category on public.products(category_id);
 create index if not exists idx_variants_product on public.variants(product_id);
+create index if not exists idx_variants_presentation on public.variants(presentation_id);
 create index if not exists idx_orders_created on public.orders(created_at desc);
 
 -- ------------------------------------------------------------
@@ -67,6 +80,7 @@ create index if not exists idx_orders_created on public.orders(created_at desc);
 
 alter table public.categories enable row level security;
 alter table public.products   enable row level security;
+alter table public.presentations enable row level security;
 alter table public.variants   enable row level security;
 alter table public.settings   enable row level security;
 alter table public.orders     enable row level security;
@@ -76,6 +90,8 @@ drop policy if exists "categories public read" on public.categories;
 create policy "categories public read"         on public.categories for select using (true);
 drop policy if exists "products public read"   on public.products;
 create policy "products public read"           on public.products   for select using (true);
+drop policy if exists "presentations public read" on public.presentations;
+create policy "presentations public read"      on public.presentations for select using (true);
 drop policy if exists "variants public read"   on public.variants;
 create policy "variants public read"           on public.variants   for select using (true);
 drop policy if exists "settings public read"   on public.settings;
@@ -86,6 +102,8 @@ drop policy if exists "categories admin write" on public.categories;
 create policy "categories admin write"         on public.categories for all to authenticated using (true) with check (true);
 drop policy if exists "products admin write"   on public.products;
 create policy "products admin write"           on public.products   for all to authenticated using (true) with check (true);
+drop policy if exists "presentations admin write" on public.presentations;
+create policy "presentations admin write"      on public.presentations for all to authenticated using (true) with check (true);
 drop policy if exists "variants admin write"   on public.variants;
 create policy "variants admin write"           on public.variants   for all to authenticated using (true) with check (true);
 drop policy if exists "settings admin write"   on public.settings;
@@ -125,6 +143,12 @@ insert into public.categories (slug, label, sort_order) values
   ('frutas',   'Frutas',   1),
   ('verduras', 'Verduras', 2),
   ('mixes',    'Mixes',    3)
+on conflict (slug) do nothing;
+
+insert into public.presentations (slug, name, sort_order) values
+  ('rodaja',    'Rodaja',    1),
+  ('media-lida','Media lida',2),
+  ('polvo',     'Polvo',     3)
 on conflict (slug) do nothing;
 
 insert into public.settings (key, value) values

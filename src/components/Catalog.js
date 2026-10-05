@@ -5,9 +5,11 @@ import Reveal from './Reveal';
 
 function ProductCard({ product }) {
   const { addToCart } = useCart();
-  const [vid, setVid] = useState('100');
+  const [vid, setVid] = useState(null);
   const [added, setAdded] = useState(false);
-  const variant = product.variants.find(v => v.id === vid) || product.variants[0];
+  const variant = product.variants.find(v => v.id === vid)
+    || product.variants.find(v => v.id === '100' || v.label === '100 g')
+    || product.variants[0];
 
   const handleAdd = () => {
     addToCart(product, variant, 1);
@@ -30,7 +32,7 @@ function ProductCard({ product }) {
         <p className="p-desc">{product.description}</p>
         <div className="p-variants">
           {product.variants.map(v => (
-            <button key={v.id} className={'vchip' + (v.id === vid ? ' on' : '')} onClick={() => setVid(v.id)}>
+            <button key={v.id} className={'vchip' + (v.id === variant.id ? ' on' : '')} onClick={() => setVid(v.id)}>
               {v.label}
             </button>
           ))}

@@ -6,6 +6,7 @@ import Dashboard from './Dashboard';
 import Products from './Products';
 import ProductForm from './ProductForm';
 import Categories from './Categories';
+import Presentations from './Presentations';
 import Orders from './Orders';
 import Settings from './Settings';
 import './admin.css';
@@ -20,6 +21,7 @@ function AdminLayout() {
           <NavLink to="/admin" end>Panel</NavLink>
           <NavLink to="/admin/productos">Productos</NavLink>
           <NavLink to="/admin/categorias">Categorías</NavLink>
+          <NavLink to="/admin/presentaciones">Presentaciones</NavLink>
           <NavLink to="/admin/pedidos">Pedidos</NavLink>
           <NavLink to="/admin/configuracion">Configuración</NavLink>
         </nav>
@@ -67,6 +69,7 @@ export default function AdminApp() {
             <Route path="productos/nuevo" element={<ProductForm />} />
             <Route path="productos/:slug" element={<ProductForm />} />
             <Route path="categorias" element={<Categories />} />
+            <Route path="presentaciones" element={<Presentations />} />
             <Route path="pedidos" element={<Orders />} />
             <Route path="configuracion" element={<Settings />} />
           </Route>
