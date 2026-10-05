@@ -19,8 +19,6 @@ export default function ProductForm() {
     category_id: '',
     description: '',
     origin: '',
-    rating: 0,
-    reviews: 0,
     badge: '',
     image: '',
     active: true,
@@ -64,8 +62,6 @@ export default function ProductForm() {
         origin: data.origin ?? '',
         badge: data.badge ?? '',
         image: data.image ?? '',
-        rating: data.rating ?? 0,
-        reviews: data.reviews ?? 0,
         sort_order: data.sort_order ?? 1,
         active: data.active ?? true
       }));
@@ -130,8 +126,6 @@ export default function ProductForm() {
       category_id: form.category_id || null,
       description: (form.description || '').trim(),
       origin: (form.origin || '').trim(),
-      rating: Number(form.rating) || 0,
-      reviews: Number(form.reviews) || 0,
       badge: (form.badge || '').trim() || null,
       image,
       active: Boolean(form.active),
@@ -214,12 +208,6 @@ export default function ProductForm() {
           </label>
           <label>Etiqueta promocional (badge)
             <input value={form.badge} onChange={set('badge')} placeholder="Más vendido / Nuevo" maxLength={40} />
-          </label>
-          <label>Calificación (0–5)
-            <input type="number" min="0" max="5" step="0.1" value={form.rating} onChange={set('rating')} />
-          </label>
-          <label>Número de reseñas
-            <input type="number" min="0" value={form.reviews} onChange={set('reviews')} />
           </label>
           <label>Orden en catálogo
             <input type="number" min="0" value={form.sort_order} onChange={set('sort_order')} />
