@@ -87,7 +87,8 @@ const setRow = (i, k) => (e) => {
       <div className="adm-card">
         <h3>Categorías actuales</h3>
         {rows.length === 0 && <p className="adm-muted">Aún no hay categorías.</p>}
-        <table className="adm-table">
+        <div className="adm-table-wrap">
+          <table className="adm-table">
           <thead><tr><th>Nombre</th><th>Slug</th><th>Orden</th><th>Productos</th><th></th></tr></thead>
           <tbody>
             {rows.map((r, i) => (
@@ -103,7 +104,8 @@ const setRow = (i, k) => (e) => {
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
     </section>
   );
