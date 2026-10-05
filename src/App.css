@@ -222,6 +222,18 @@ nav.main a:hover::after{transform:scaleX(1);transform-origin:left}
 .clear-btn{width:100%;margin-top:.55rem;padding:.8rem;border-radius:9px;border:1.5px solid var(--ink);background:transparent;font-weight:600;font-size:.85rem;transition:background .2s}
 .clear-btn:hover{background:var(--paper)}
 
+/* formulario de contacto en el drawer */
+.co-form{margin-top:.9rem}
+.co-hint{font-family:var(--mono);font-size:.64rem;text-transform:uppercase;letter-spacing:.1em;color:var(--ink2);margin-bottom:.7rem}
+.co-row{display:grid;gap:.6rem;margin-bottom:.8rem}
+.co-row input{width:100%;padding:.85rem 1.05rem;border:1.5px solid rgba(30,23,16,.22);border-radius:9px;background:var(--card);font-size:.95rem;color:var(--ink);outline:none;transition:border-color .2s,box-shadow .2s}
+.co-row input::placeholder{color:var(--ink2);opacity:.65}
+.co-row input:focus{border-color:var(--terra);box-shadow:0 0 0 3px rgba(196,83,31,.12)}
+.co-done{margin-top:.9rem;text-align:center;padding:.6rem 0}
+.co-done .co-ok{font-family:var(--disp);font-size:1.15rem;font-weight:600;color:var(--olive);margin-bottom:.3rem}
+.co-done p{font-size:.88rem;color:var(--ink2)}
+.co-done .co-warn{margin-top:.5rem;padding:.6rem .8rem;border:1.5px solid var(--gold);border-radius:9px;background:rgba(217,164,65,.14);color:var(--ink);font-size:.82rem;text-align:left}
+
 /* responsive */
 @media(max-width:1020px){
   .hero-grid{grid-template-columns:1fr;gap:3.5rem}
