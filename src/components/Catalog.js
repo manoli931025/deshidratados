@@ -10,7 +10,8 @@ function ProductCard({ product }) {
   const [imgIdx, setImgIdx] = useState(0);
   const variant = product.variants.find(v => v.id === vid)
     || product.variants.find(v => v.id === '100' || v.label === '100 g')
-    || product.variants[0];
+    || product.variants[0]
+    || null;
 
   const gallery = [product.image, ...(product.images || [])].filter(Boolean);
   const variantImgs = (variant && Array.isArray(variant.images) && variant.images.length) ? variant.images : null;
@@ -19,14 +20,15 @@ function ProductCard({ product }) {
   const curImg = activeGallery[imgIdx % activeGallery.length] || product.image;
 
   const handleAdd = () => {
+    if (!variant) return;
     addToCart(product, variant, 1);
     setAdded(true);
     setTimeout(() => setAdded(false), 1400);
   };
 
   const pickVariant = (id) => { setVid(id); setImgIdx(0); };
-  const prevImg = () => setImgIdx(i => (i - 1 + gallery.length) % gallery.length);
-  const nextImg = () => setImgIdx(i => (i + 1) % gallery.length);
+  const prevImg = () => setImgIdx(i => (i - 1 + activeGallery.length) % activeGallery.length);
+  const nextImg = () => setImgIdx(i => (i + 1) % activeGallery.length);
 
   return (
     <article className="p-card">
@@ -39,7 +41,7 @@ function ProductCard({ product }) {
             <button className="p-nav prev" onClick={prevImg} aria-label="Foto anterior">‹</button>
             <button className="p-nav next" onClick={nextImg} aria-label="Foto siguiente">›</button>
             <div className="p-dots">
-              {gallery.map((_, i) => (
+              {activeGallery.map((_, i) => (
                 <span key={i} className={'p-dot' + (i === imgIdx ? ' on' : '')} onClick={() => setImgIdx(i)} />
               ))}
             </div>
@@ -54,14 +56,14 @@ function ProductCard({ product }) {
         <p className="p-desc">{product.description}</p>
         <div className="p-variants">
           {product.variants.map(v => (
-            <button key={v.id} className={'vchip' + (v.id === variant.id ? ' on' : '')} onClick={() => pickVariant(v.id)}>
+            <button key={v.id} className={'vchip' + (variant && v.id === variant.id ? ' on' : '')} onClick={() => pickVariant(v.id)}>
               {v.label}
             </button>
           ))}
         </div>
         <div className="p-foot">
-          <span className="p-price">${variant.price}</span>
-          <button className={'btn add-btn' + (added ? ' ok' : '')} onClick={handleAdd}>
+          <span className="p-price">{variant ? `$${variant.price}` : '—'}</span>
+          <button className={'btn add-btn' + (added ? ' ok' : '')} onClick={handleAdd} disabled={!variant}>
             {added ? '✓ Agregado' : '+ Agregar'}
           </button>
         </div>
