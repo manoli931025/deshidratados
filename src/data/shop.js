@@ -25,7 +25,8 @@ function mapProduct(row, catBySlug, variantsByProduct, presById) {
         id: v.id,
         label: pres ? `${pres} · ${v.label}` : v.label,
         price: Number(v.price),
-        presentation: pres || null
+        presentation: pres || null,
+        images: Array.isArray(v.images) ? v.images.map(publicImageUrl) : []
       };
     });
   return {
@@ -38,6 +39,7 @@ function mapProduct(row, catBySlug, variantsByProduct, presById) {
     reviews: Number(row.reviews) || 0,
     badge: row.badge || null,
     image: publicImageUrl(row.image),
+    images: (Array.isArray(row.images) && row.images.length ? row.images : []).map(publicImageUrl),
     variants: vs
   };
 }

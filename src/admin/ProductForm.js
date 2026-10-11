@@ -5,7 +5,7 @@ import { supabase, publicImageUrl, IMAGES_BUCKET } from '../data/supabase';
 const noAccents = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const slugify = (s) => noAccents(s.toLowerCase()).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
 
-const emptyVariant = () => ({ weight: '', label: '', price: '', presentation_id: '' });
+const emptyVariant = () => ({ weight: '', unit: 'g', label: '', price: '', presentation_id: '', images: [] });
 
 export default function ProductForm() {
   const { slug } = useParams();
@@ -26,8 +26,10 @@ export default function ProductForm() {
     sort_order: 1
   });
   const [variants, setVariants] = useState([emptyVariant()]);
+  const [gallery, setGallery] = useState([]);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState('');
+  const [galleryUrl, setGalleryUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(!isNew);
@@ -67,19 +69,27 @@ export default function ProductForm() {
         origin: data.origin ?? '',
         badge: data.badge ?? '',
         image: data.image ?? '',
+        images: data.images ?? [],
         sort_order: data.sort_order ?? 1,
         active: data.active ?? true
       }));
+      setGallery(Array.isArray(data.images) ? data.images : []);
       setLoading(false);
       const vRes = await supabase.from('variants').select('*').eq('product_id', data.id);
       if (!alive) return;
       setVariants(vRes.data && vRes.data.length
-        ? vRes.data.map(v => ({
-            weight: v.weight ?? '',
-            label: v.label ?? '',
-            price: String(v.price ?? ''),
-            presentation_id: v.presentation_id ?? ''
-          }))
+        ? vRes.data.map(v => {
+            const lbl = v.label ?? '';
+            const m = lbl.match(/^([\d.,]+)\s*(\S+)$/);
+            return {
+              weight: v.weight ?? (m ? m[1] : ''),
+              unit: m ? m[2] : 'g',
+              label: lbl,
+              price: String(v.price ?? ''),
+              presentation_id: v.presentation_id ?? '',
+              images: Array.isArray(v.images) ? v.images : []
+            };
+          })
         : [emptyVariant()]);
     })();
     return () => { alive = false; };
@@ -105,6 +115,54 @@ export default function ProductForm() {
     if (!f) return;
     setFile(f);
     setPreview(URL.createObjectURL(f));
+  };
+
+  const addGalleryUrl = () => {
+    const u = (galleryUrl || '').trim();
+    if (!u) return;
+    setGallery(g => [...g, u]);
+    setGalleryUrl('');
+  };
+
+  const removeGallery = (i) => setGallery(g => g.filter((_, idx) => idx !== i));
+
+  const moveGallery = (i, dir) => {
+    setGallery(g => {
+      const arr = [...g];
+      const j = i + dir;
+      if (j < 0 || j >= arr.length) return g;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+      return arr;
+    });
+  };
+
+  const onGalleryFiles = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const slugClean = (form.slug || slugify(form.name || '')).trim() || 'temp';
+    const uploaded = [];
+    for (const f of files) {
+      const ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = `products/${slugClean}/gallery-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
+      const { error: upError } = await supabase.storage.from(IMAGES_BUCKET).upload(path, f, { upsert: true });
+      if (upError) { setErr('No se pudo subir una imagen: ' + upError.message); continue; }
+      uploaded.push(publicImageUrl(path));
+    }
+    if (uploaded.length) setGallery(g => [...g, ...uploaded]);
+    e.target.value = '';
+  };
+
+  const onVariantImage = async (i, e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const slugClean = (form.slug || slugify(form.name || '')).trim() || 'temp';
+    const ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
+    const path = `products/${slugClean}/var-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
+    const { error: upError } = await supabase.storage.from(IMAGES_BUCKET).upload(path, f, { upsert: true });
+    if (upError) { setErr('No se pudo subir la imagen: ' + upError.message); return; }
+    const url = publicImageUrl(path);
+    setVariants(vs => vs.map((v, idx) => (idx === i ? { ...v, images: [...(v.images||[]), url] } : v)));
+    e.target.value = '';
   };
 
   const setVariant = (i, k) => (e) => {
@@ -138,6 +196,7 @@ export default function ProductForm() {
       origin: (form.origin || '').trim(),
       badge: (form.badge || '').trim() || null,
       image,
+      images: gallery,
       active: Boolean(form.active),
       sort_order: Number(form.sort_order) || 1
     };
@@ -154,22 +213,40 @@ export default function ProductForm() {
   };
 
   const saveVariants = async (productId) => {
+    const hasAnyData = variants.some(v =>
+      v.presentation_id || String(v.weight ?? '').trim() !== '' || String(v.price ?? '').trim() !== ''
+    );
+    if (!hasAnyData) {
+      throw new Error('Debe agregar al menos un precio con presentación, cantidad y precio.');
+    }
+    const incomplete = variants.find(v => {
+      const partial = v.presentation_id || String(v.weight ?? '').trim() !== '' || String(v.price ?? '').trim() !== '';
+      return partial && (!v.presentation_id || !(Number(v.weight) > 0) || !(Number(v.price) > 0));
+    });
+    if (incomplete) {
+      throw new Error('Cada fila de precio requiere presentación, cantidad mayor a cero y precio mayor a cero.');
+    }
+
     const { error: delError } = await supabase.from('variants').delete().eq('product_id', productId);
     if (delError) throw new Error(delError.message);
 
     const toInsert = variants
-      .filter(v => (v.label || '').trim() && String(v.price ?? '').trim() !== '')
-      .map(v => ({
-        product_id: productId,
-        weight: (v.weight || String(v.label ?? '').replace(/[^0-9.]/g, '')).trim() || '100',
-        label: (v.label || '').trim(),
-        price: Number(v.price) || 0,
-        presentation_id: v.presentation_id || null
-      }));
-    if (toInsert.length) {
-      const { error } = await supabase.from('variants').insert(toInsert);
-      if (error) throw new Error('Error en precios: ' + error.message);
-    }
+      .filter(v => v.presentation_id && Number(v.weight) > 0 && Number(v.price) > 0)
+      .map(v => {
+        const w = Number(v.weight);
+        const unit = v.unit || 'g';
+        const label = `${w} ${unit}`;
+        return {
+          product_id: productId,
+          weight: String(w),
+          label,
+          price: Number(v.price) || 0,
+          presentation_id: v.presentation_id,
+          images: Array.isArray(v.images) ? v.images : []
+        };
+      });
+    const { error } = await supabase.from('variants').insert(toInsert);
+    if (error) throw new Error('Error en precios: ' + error.message);
   };
 
   const onSubmit = async (e) => {
@@ -242,24 +319,69 @@ export default function ProductForm() {
           {(preview || form.image) && (
             <img src={preview || publicImageUrl(form.image)} alt="Vista previa" />
           )}
-          <span className="adm-muted small">Se muestra arriba la imagen actual o la que selecciones.</span>
+          <span className="adm-muted small">Imagen principal del producto.</span>
         </div>
 
-        <h3>Precios por presentación</h3>
-        <div className="adm-vars">
-          <div className="adm-var-head"><span>Presentación</span><span>Gramos</span><span>Etiqueta</span><span>Precio $</span><span></span></div>
-          {variants.map((v, i) => (
-            <div className="adm-var-row" key={i}>
-              <select value={v.presentation_id} onChange={setVariant(i, 'presentation_id')}>
-                <option value="">— Sin presentación —</option>
-                {presList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-              <input value={v.weight} onChange={setVariant(i, 'weight')} placeholder="100" />
-              <input value={v.label} onChange={setVariant(i, 'label')} placeholder="100 g" required />
-              <input value={v.price} onChange={setVariant(i, 'price')} placeholder="45" required />
-              <button type="button" className="adm-linkbtn danger" onClick={() => setVariants(vs => vs.filter((_, idx) => idx !== i))}>Quitar</button>
+        <h3>Galería de fotos</h3>
+        <p className="adm-muted small">Fotos adicionales que el cliente verá en el carrusel de la tarjeta. La primera será la principal del carrusel.</p>
+        <div className="adm-grid">
+          <label>Agregar por URL
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input value={galleryUrl} onChange={e => setGalleryUrl(e.target.value)} placeholder="https://… o ruta del bucket" />
+              <button type="button" className="adm-btn ghost" onClick={addGalleryUrl}>Agregar</button>
             </div>
-          ))}
+          </label>
+          <label>O subir archivos (varios)
+            <input type="file" accept="image/*" multiple onChange={onGalleryFiles} />
+          </label>
+        </div>
+        {gallery.length > 0 && (
+          <div className="adm-gallery">
+            {gallery.map((img, i) => (
+              <div className="adm-gallery-item" key={i}>
+                <img src={publicImageUrl(img)} alt="" />
+                <div className="adm-gallery-actions">
+                  <button type="button" className="adm-linkbtn" onClick={() => moveGallery(i, -1)} disabled={i === 0}>←</button>
+                  <button type="button" className="adm-linkbtn" onClick={() => moveGallery(i, 1)} disabled={i === gallery.length - 1}>→</button>
+                  <button type="button" className="adm-linkbtn danger" onClick={() => removeGallery(i)}>Quitar</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <h3>Precios por presentación</h3>
+        <p className="adm-muted small">Cada fila requiere presentación, cantidad con unidad y precio. La etiqueta se genera automáticamente.</p>
+        <div className="adm-vars">
+          <div className="adm-var-head"><span>Foto</span><span>Presentación</span><span>Cantidad</span><span>Unidad</span><span>Precio $</span><span></span><span></span></div>
+          {variants.map((v, i) => {
+            const autoLabel = `${v.weight}${v.unit ? ' ' + v.unit : ''}`;
+            return (
+              <div className="adm-var-row" key={i}>
+                <label className="adm-var-img" title="Foto de esta presentación">
+                  {(v.images && v.images.length)
+                    ? <img src={publicImageUrl(v.images[0])} alt="" />
+                    : <span className="adm-var-img-ph">📷</span>}
+                  <input type="file" accept="image/*" onChange={e => onVariantImage(i, e)} />
+                </label>
+                <select value={v.presentation_id} onChange={setVariant(i, 'presentation_id')} required>
+                  <option value="">— Elegir —</option>
+                  {presList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+                <input type="number" min="1" step="any" value={v.weight} onChange={setVariant(i, 'weight')} placeholder="100" required />
+                <select value={v.unit} onChange={setVariant(i, 'unit')}>
+                  <option value="g">g</option>
+                  <option value="kg">kg</option>
+                  <option value="ml">ml</option>
+                  <option value="L">L</option>
+                  <option value="ud">ud</option>
+                </select>
+                <input type="number" min="1" step="any" value={v.price} onChange={setVariant(i, 'price')} placeholder="45" required />
+                <button type="button" className="adm-linkbtn danger" onClick={() => setVariants(vs => vs.filter((_, idx) => idx !== i))}>Quitar</button>
+                <span className="adm-var-preview small adm-muted">{autoLabel}</span>
+              </div>
+            );
+          })}
           <button type="button" className="adm-link" onClick={() => setVariants(vs => [...vs, emptyVariant()])}>+ Agregar precio</button>
         </div>
 

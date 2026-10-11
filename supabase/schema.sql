@@ -26,10 +26,20 @@ create table if not exists public.products (
   rating      numeric(2,1) not null default 0,
   reviews     int  not null default 0,
   badge       text,
-  image       text not null default '',
+  images      text[] not null default '{}',
   active      boolean not null default true,
   sort_order  int  not null default 0,
   created_at  timestamptz not null default now()
+);
+
+create table if not exists public.reviews (
+  id uuid primary key default gen_random_uuid(),
+  product_id uuid references public.products(id) on delete cascade,
+  author text not null,
+  rating int not null check (rating between 1 and 5),
+  comment text not null default '',
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  created_at timestamptz not null default now()
 );
 
 create table if not exists public.presentations (
@@ -51,6 +61,13 @@ create table if not exists public.variants (
 -- Presentación de venta (rodaja, media lida, polvo…) ligada a cada precio
 alter table public.variants
   add column if not exists presentation_id uuid references public.presentations(id) on delete set null;
+
+-- Imagen propia por presentación (opcional)
+alter table public.variants
+  add column if not exists images text[] not null default '{}';
+update public.variants set images = '{}' where images is null;
+alter table public.variants alter column images set default '{}';
+alter table public.variants alter column images set not null;
 
 create table if not exists public.orders (
   id            uuid primary key default gen_random_uuid(),
@@ -84,6 +101,7 @@ alter table public.presentations enable row level security;
 alter table public.variants   enable row level security;
 alter table public.settings   enable row level security;
 alter table public.orders     enable row level security;
+alter table public.reviews    enable row level security;
 
 -- Catálogo: cualquiera puede leer
 drop policy if exists "categories public read" on public.categories;
@@ -114,6 +132,14 @@ drop policy if exists "orders public insert"   on public.orders;
 create policy "orders public insert"           on public.orders for insert with check (true);
 drop policy if exists "orders admin manage"    on public.orders;
 create policy "orders admin manage"            on public.orders for all to authenticated using (true) with check (true);
+
+-- Reseñas: cualquiera puede leer aprobadas, cualquiera inserta (queda pending), admin gestiona todo
+drop policy if exists "reviews public read" on public.reviews;
+create policy "reviews public read" on public.reviews for select using (status = 'approved');
+drop policy if exists "reviews public insert" on public.reviews;
+create policy "reviews public insert" on public.reviews for insert with check (status = 'pending');
+drop policy if exists "reviews admin manage" on public.reviews;
+create policy "reviews admin manage" on public.reviews for all to authenticated using (true) with check (true);
 
 -- ------------------------------------------------------------
 -- STORAGE · Bucket de imágenes de productos

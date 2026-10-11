@@ -7,9 +7,16 @@ function ProductCard({ product }) {
   const { addToCart } = useCart();
   const [vid, setVid] = useState(null);
   const [added, setAdded] = useState(false);
+  const [imgIdx, setImgIdx] = useState(0);
   const variant = product.variants.find(v => v.id === vid)
     || product.variants.find(v => v.id === '100' || v.label === '100 g')
     || product.variants[0];
+
+  const gallery = [product.image, ...(product.images || [])].filter(Boolean);
+  const variantImgs = (variant && Array.isArray(variant.images) && variant.images.length) ? variant.images : null;
+  const activeGallery = variantImgs ? variantImgs : gallery;
+  const showNav = activeGallery.length > 1;
+  const curImg = activeGallery[imgIdx % activeGallery.length] || product.image;
 
   const handleAdd = () => {
     addToCart(product, variant, 1);
@@ -17,12 +24,27 @@ function ProductCard({ product }) {
     setTimeout(() => setAdded(false), 1400);
   };
 
+  const pickVariant = (id) => { setVid(id); setImgIdx(0); };
+  const prevImg = () => setImgIdx(i => (i - 1 + gallery.length) % gallery.length);
+  const nextImg = () => setImgIdx(i => (i + 1) % gallery.length);
+
   return (
     <article className="p-card">
       <div className="p-media">
-        <img src={product.image} alt={product.name} loading="lazy" />
+        <img src={curImg} alt={product.name} loading="lazy" />
         {product.badge && <span className="p-badge">{product.badge}</span>}
         <span className="p-origin">{product.origin}</span>
+        {showNav && (
+          <>
+            <button className="p-nav prev" onClick={prevImg} aria-label="Foto anterior">‹</button>
+            <button className="p-nav next" onClick={nextImg} aria-label="Foto siguiente">›</button>
+            <div className="p-dots">
+              {gallery.map((_, i) => (
+                <span key={i} className={'p-dot' + (i === imgIdx ? ' on' : '')} onClick={() => setImgIdx(i)} />
+              ))}
+            </div>
+          </>
+        )}
       </div>
       <div className="p-body">
         <div className="p-top">
@@ -32,7 +54,7 @@ function ProductCard({ product }) {
         <p className="p-desc">{product.description}</p>
         <div className="p-variants">
           {product.variants.map(v => (
-            <button key={v.id} className={'vchip' + (v.id === variant.id ? ' on' : '')} onClick={() => setVid(v.id)}>
+            <button key={v.id} className={'vchip' + (v.id === variant.id ? ' on' : '')} onClick={() => pickVariant(v.id)}>
               {v.label}
             </button>
           ))}
