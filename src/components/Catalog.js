@@ -13,11 +13,10 @@ function ProductCard({ product }) {
     || product.variants[0]
     || null;
 
-  const gallery = [product.image, ...(product.images || [])].filter(Boolean);
   const variantImgs = (variant && Array.isArray(variant.images) && variant.images.length) ? variant.images : null;
-  const activeGallery = variantImgs ? variantImgs : gallery;
+  const activeGallery = variantImgs || (product.image ? [product.image] : []);
   const showNav = activeGallery.length > 1;
-  const curImg = activeGallery[imgIdx % activeGallery.length] || product.image;
+  const curImg = activeGallery.length ? activeGallery[imgIdx % activeGallery.length] : product.image;
 
   const handleAdd = () => {
     if (!variant) return;

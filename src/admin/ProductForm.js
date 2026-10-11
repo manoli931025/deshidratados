@@ -26,10 +26,8 @@ export default function ProductForm() {
     sort_order: 1
   });
   const [variants, setVariants] = useState([emptyVariant()]);
-  const [gallery, setGallery] = useState([]);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState('');
-  const [galleryUrl, setGalleryUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(!isNew);
@@ -69,11 +67,9 @@ export default function ProductForm() {
         origin: data.origin ?? '',
         badge: data.badge ?? '',
         image: data.image ?? '',
-        images: data.images ?? [],
         sort_order: data.sort_order ?? 1,
         active: data.active ?? true
       }));
-      setGallery(Array.isArray(data.images) ? data.images : []);
       setLoading(false);
       const vRes = await supabase.from('variants').select('*').eq('product_id', data.id);
       if (!alive) return;
@@ -117,52 +113,26 @@ export default function ProductForm() {
     setPreview(URL.createObjectURL(f));
   };
 
-  const addGalleryUrl = () => {
-    const u = (galleryUrl || '').trim();
-    if (!u) return;
-    setGallery(g => [...g, u]);
-    setGalleryUrl('');
-  };
-
-  const removeGallery = (i) => setGallery(g => g.filter((_, idx) => idx !== i));
-
-  const moveGallery = (i, dir) => {
-    setGallery(g => {
-      const arr = [...g];
-      const j = i + dir;
-      if (j < 0 || j >= arr.length) return g;
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-      return arr;
-    });
-  };
-
-  const onGalleryFiles = async (e) => {
+  const onVariantImage = async (i, e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     const slugClean = (form.slug || slugify(form.name || '')).trim() || 'temp';
     const uploaded = [];
     for (const f of files) {
       const ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
-      const path = `products/${slugClean}/gallery-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
+      const path = `products/${slugClean}/var-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
       const { error: upError } = await supabase.storage.from(IMAGES_BUCKET).upload(path, f, { upsert: true });
       if (upError) { setErr('No se pudo subir una imagen: ' + upError.message); continue; }
       uploaded.push(publicImageUrl(path));
     }
-    if (uploaded.length) setGallery(g => [...g, ...uploaded]);
+    if (uploaded.length) {
+      setVariants(vs => vs.map((v, idx) => (idx === i ? { ...v, images: [...(v.images || []), ...uploaded] } : v)));
+    }
     e.target.value = '';
   };
 
-  const onVariantImage = async (i, e) => {
-    const f = e.target.files && e.target.files[0];
-    if (!f) return;
-    const slugClean = (form.slug || slugify(form.name || '')).trim() || 'temp';
-    const ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
-    const path = `products/${slugClean}/var-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
-    const { error: upError } = await supabase.storage.from(IMAGES_BUCKET).upload(path, f, { upsert: true });
-    if (upError) { setErr('No se pudo subir la imagen: ' + upError.message); return; }
-    const url = publicImageUrl(path);
-    setVariants(vs => vs.map((v, idx) => (idx === i ? { ...v, images: [...(v.images||[]), url] } : v)));
-    e.target.value = '';
+  const removeVariantImage = (i, j) => {
+    setVariants(vs => vs.map((v, idx) => (idx === i ? { ...v, images: (v.images || []).filter((_, k) => k !== j) } : v)));
   };
 
   const setVariant = (i, k) => (e) => {
@@ -187,6 +157,10 @@ export default function ProductForm() {
       if (upError) throw new Error('No se pudo subir la imagen: ' + upError.message);
       image = publicImageUrl(path);
     }
+    if (!image) {
+      const firstWithImg = variants.find(v => (v.images || []).length);
+      if (firstWithImg) image = firstWithImg.images[0];
+    }
 
     const payload = {
       name: (form.name || '').trim(),
@@ -196,7 +170,6 @@ export default function ProductForm() {
       origin: (form.origin || '').trim(),
       badge: (form.badge || '').trim() || null,
       image,
-      images: gallery,
       active: Boolean(form.active),
       sort_order: Number(form.sort_order) || 1
     };
@@ -322,63 +295,48 @@ export default function ProductForm() {
           <span className="adm-muted small">Imagen principal del producto.</span>
         </div>
 
-        <h3>Galería de fotos</h3>
-        <p className="adm-muted small">Fotos adicionales que el cliente verá en el carrusel de la tarjeta. La primera será la principal del carrusel.</p>
-        <div className="adm-grid">
-          <label>Agregar por URL
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input value={galleryUrl} onChange={e => setGalleryUrl(e.target.value)} placeholder="https://… o ruta del bucket" />
-              <button type="button" className="adm-btn ghost" onClick={addGalleryUrl}>Agregar</button>
-            </div>
-          </label>
-          <label>O subir archivos (varios)
-            <input type="file" accept="image/*" multiple onChange={onGalleryFiles} />
-          </label>
-        </div>
-        {gallery.length > 0 && (
-          <div className="adm-gallery">
-            {gallery.map((img, i) => (
-              <div className="adm-gallery-item" key={i}>
-                <img src={publicImageUrl(img)} alt="" />
-                <div className="adm-gallery-actions">
-                  <button type="button" className="adm-linkbtn" onClick={() => moveGallery(i, -1)} disabled={i === 0}>←</button>
-                  <button type="button" className="adm-linkbtn" onClick={() => moveGallery(i, 1)} disabled={i === gallery.length - 1}>→</button>
-                  <button type="button" className="adm-linkbtn danger" onClick={() => removeGallery(i)}>Quitar</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
         <h3>Precios por presentación</h3>
         <p className="adm-muted small">Cada fila requiere presentación, cantidad con unidad y precio. La etiqueta se genera automáticamente.</p>
         <div className="adm-vars">
           <div className="adm-var-head"><span>Foto</span><span>Presentación</span><span>Cantidad</span><span>Unidad</span><span>Precio $</span><span></span><span></span></div>
           {variants.map((v, i) => {
             const autoLabel = `${v.weight}${v.unit ? ' ' + v.unit : ''}`;
+            const imgs = v.images || [];
             return (
-              <div className="adm-var-row" key={i}>
-                <label className="adm-var-img" title="Foto de esta presentación">
-                  {(v.images && v.images.length)
-                    ? <img src={publicImageUrl(v.images[0])} alt="" />
-                    : <span className="adm-var-img-ph">📷</span>}
-                  <input type="file" accept="image/*" onChange={e => onVariantImage(i, e)} />
-                </label>
-                <select value={v.presentation_id} onChange={setVariant(i, 'presentation_id')} required>
-                  <option value="">— Elegir —</option>
-                  {presList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-                <input type="number" min="1" step="any" value={v.weight} onChange={setVariant(i, 'weight')} placeholder="100" required />
-                <select value={v.unit} onChange={setVariant(i, 'unit')}>
-                  <option value="g">g</option>
-                  <option value="kg">kg</option>
-                  <option value="ml">ml</option>
-                  <option value="L">L</option>
-                  <option value="ud">ud</option>
-                </select>
-                <input type="number" min="1" step="any" value={v.price} onChange={setVariant(i, 'price')} placeholder="45" required />
-                <button type="button" className="adm-linkbtn danger" onClick={() => setVariants(vs => vs.filter((_, idx) => idx !== i))}>Quitar</button>
-                <span className="adm-var-preview small adm-muted">{autoLabel}</span>
+              <div className="adm-var-block" key={i}>
+                <div className="adm-var-row">
+                  <label className="adm-var-img" title="Agregar fotos de esta presentación">
+                    {imgs.length
+                      ? <img src={publicImageUrl(imgs[0])} alt="" />
+                      : <span className="adm-var-img-ph">📷</span>}
+                    <input type="file" accept="image/*" multiple onChange={e => onVariantImage(i, e)} />
+                  </label>
+                  <select value={v.presentation_id} onChange={setVariant(i, 'presentation_id')} required>
+                    <option value="">— Elegir —</option>
+                    {presList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                  <input type="number" min="1" step="any" value={v.weight} onChange={setVariant(i, 'weight')} placeholder="100" required />
+                  <select value={v.unit} onChange={setVariant(i, 'unit')}>
+                    <option value="g">g</option>
+                    <option value="kg">kg</option>
+                    <option value="ml">ml</option>
+                    <option value="L">L</option>
+                    <option value="ud">ud</option>
+                  </select>
+                  <input type="number" min="1" step="any" value={v.price} onChange={setVariant(i, 'price')} placeholder="45" required />
+                  <button type="button" className="adm-linkbtn danger" onClick={() => setVariants(vs => vs.filter((_, idx) => idx !== i))}>Quitar</button>
+                  <span className="adm-var-preview small adm-muted">{autoLabel}</span>
+                </div>
+                {imgs.length > 0 && (
+                  <div className="adm-var-thumbs">
+                    {imgs.map((img, j) => (
+                      <span className="adm-var-thumb" key={j}>
+                        <img src={publicImageUrl(img)} alt="" />
+                        <button type="button" className="adm-thumb-x" onClick={() => removeVariantImage(i, j)} title="Quitar foto">✕</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}

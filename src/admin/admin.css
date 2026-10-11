@@ -251,7 +251,7 @@
 .adm-var-head,
 .adm-var-row {
   display: grid;
-  grid-template-columns: 150px 80px 1fr 110px 60px;
+  grid-template-columns: 48px 140px 64px 60px 90px 50px 1fr;
   gap: 8px;
   align-items: center;
 }
@@ -266,6 +266,42 @@
 }
 
 .adm-var-row { margin-bottom: 8px; }
+.adm-var-preview { font-size: 11px; }
+.adm-var-img { position: relative; width: 48px; height: 48px; border-radius: 8px; overflow: hidden; border: 1px dashed var(--adm-line); display: grid; place-items: center; cursor: pointer; background: #fff; }
+.adm-var-img img { width: 100%; height: 100%; object-fit: cover; }
+.adm-var-img-ph { font-size: 18px; opacity: .5; }
+.adm-var-img input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.adm-var-block { margin-bottom: 10px; }
+.adm-var-thumbs { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0 0 56px; }
+.adm-var-thumb { position: relative; width: 40px; height: 40px; border-radius: 6px; overflow: hidden; border: 1px solid var(--adm-line); }
+.adm-var-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.adm-thumb-x { position: absolute; top: 0; right: 0; width: 16px; height: 16px; padding: 0; border: none; border-radius: 0 0 0 6px; background: rgba(179,38,30,.85); color: #fff; font-size: 9px; line-height: 16px; cursor: pointer; }
+
+/* Galería de fotos del producto */
+.adm-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin: 8px 0 16px; }
+.adm-gallery-item { border: 1px solid var(--adm-line); border-radius: 10px; overflow: hidden; background: #fff; }
+.adm-gallery-item img { width: 100%; height: 110px; object-fit: cover; display: block; background: #f1e8d8; }
+.adm-gallery-actions { display: flex; align-items: center; justify-content: space-between; padding: 6px; gap: 4px; }
+.adm-gallery-actions .adm-linkbtn { min-width: 28px; padding: 2px 6px; border: 1px solid var(--adm-line); border-radius: 6px; font-size: 14px; line-height: 1; }
+.adm-gallery-actions .adm-linkbtn:disabled { opacity: .35; cursor: not-allowed; }
+
+/* Filtros (reseñas) */
+.adm-filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 16px; }
+.adm-chip { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--adm-line); background: #fff; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--adm-mut); }
+.adm-chip.on { background: var(--adm-accent, #C4531F); color: #fff; border-color: var(--adm-accent, #C4531F); }
+
+/* Leyenda de estados de pedido */
+.adm-status-legend { display: flex; flex-wrap: wrap; gap: 12px 20px; margin: 4px 0 18px; }
+.adm-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Pedidos: agrupación y hints */
+.adm-order-group { margin-bottom: 24px; }
+.adm-group-title { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; font-size: 15px; }
+.adm-badge.click { cursor: pointer; border: none; font-family: inherit; }
+.adm-badge.click:hover { filter: brightness(.95); }
+.adm-status-hint { margin: 6px 0 8px; padding: 8px 12px; background: var(--adm-bg); border: 1px dashed var(--adm-line); border-radius: 8px; font-size: 13px; color: var(--adm-mut); }
+.adm-order-items li.adm-item-avail { opacity: .95; }
+.adm-warn-tag { margin-left: 8px; font-size: 11px; color: #b3261e; font-weight: 700; }
 
 .adm-form-actions {
   display: flex;
@@ -318,8 +354,7 @@
   background: #f1e8d8;
 }
 
-.adm-actions { white-space: nowrap; }
-.adm-actions .adm-linkbtn { margin-right: 10px; }
+.adm-actions { white-space: nowrap; display: flex; gap: 12px; align-items: center; }
 
 /* Insignias de estado */
 .adm-badge {
@@ -456,5 +491,6 @@
   .adm-body { padding: 16px; }
   .adm-grid, .adm-grid.three { grid-template-columns: 1fr; }
   .adm-var-head { display: none; }
-  .adm-var-row { grid-template-columns: 1fr 1fr; }
+  .adm-var-row { grid-template-columns: 48px 1fr 1fr; }
+  .adm-var-preview { grid-column: 1 / -1; }
 }
