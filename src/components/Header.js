@@ -4,7 +4,7 @@ import { useShop } from '../data/shop';
 
 export default function Header({ onCartOpen }) {
   const { itemCount, total } = useCart();
-  const { shop } = useShop();
+  const { shop, products } = useShop();
   const [msg, setMsg] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -12,7 +12,9 @@ export default function Header({ onCartOpen }) {
 
   const MSGS = [
     `Envío gratis en pedidos mayores a $${shop.freeShip}`,
-    'Nueva cosecha: mango ataulfo de Nayarit',
+    products.length
+      ? `Nuevo: ${products[0].name} · solo ${products[0].origin}`
+      : 'Nueva cosecha disponible',
     'Pedidos por WhatsApp · respuesta el mismo día',
   ];
 

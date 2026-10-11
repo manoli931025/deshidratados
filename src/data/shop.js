@@ -30,6 +30,7 @@ function mapProduct(row, catBySlug, variantsByProduct, presById) {
       };
     });
   return {
+    dbId: row.id,
     id: row.slug,
     name: row.name,
     category: catBySlug[row.category_id] ? catBySlug[row.category_id].slug : '',

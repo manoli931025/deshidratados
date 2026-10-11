@@ -170,6 +170,40 @@
 
 .adm-linkbtn.danger { color: #b3261e; }
 .adm-linkbtn:disabled { opacity: .5; }
+.adm-linkbtn.wa-confirm {
+  background: #128c7e;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+}
+.adm-linkbtn.wa-confirm:hover { background: #0e7368; }
+.adm-linkbtn.phone-add { font-weight: 600; }
+.adm-linkbtn.phone-add.need {
+  color: #b3261e;
+  background: #ffe1df;
+  border-radius: 6px;
+  padding: 2px 8px;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.55 } }
+.adm-phone-hint {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  background: #fff4e0;
+  border: 1px dashed #e0b350;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #8a6412;
+}
+.adm-phone-edit input {
+  padding: 3px 7px;
+  border: 1px solid var(--adm-line);
+  border-radius: 6px;
+  font-size: 13px;
+  width: 150px;
+}
+.adm-phone-edit .adm-linkbtn { margin-left: 6px; }
 
 /* Login */
 .adm-login {
@@ -300,7 +334,6 @@
 .adm-badge.click { cursor: pointer; border: none; font-family: inherit; }
 .adm-badge.click:hover { filter: brightness(.95); }
 .adm-status-hint { margin: 6px 0 8px; padding: 8px 12px; background: var(--adm-bg); border: 1px dashed var(--adm-line); border-radius: 8px; font-size: 13px; color: var(--adm-mut); }
-.adm-order-items li.adm-item-avail { opacity: .95; }
 .adm-warn-tag { margin-left: 8px; font-size: 11px; color: #b3261e; font-weight: 700; }
 
 .adm-form-actions {
@@ -428,11 +461,21 @@
 }
 
 .adm-order-items li {
-  display: flex;
-  justify-content: space-between;
-  padding: 5px 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
   border-bottom: 1px dashed var(--adm-line);
   font-size: 14px;
+}
+
+.adm-item-info { min-width: 0; line-height: 1.4; }
+.adm-item-price {
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .adm-order-foot {
@@ -450,6 +493,7 @@
   border-radius: 8px;
   background: #fff;
 }
+.adm-order-foot select:disabled { opacity: .6; cursor: wait; }
 
 /* Mensajes */
 .adm-err {

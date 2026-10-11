@@ -26,18 +26,12 @@ export default function Hero() {
           </div>
         </div>
         <div className="collage">
-          <figure className="polaroid p1">
-            <img src={products[0].image} alt={products[0].name} />
-            <figcaption>mango · laminado fino</figcaption>
-          </figure>
-          <figure className="polaroid p2">
-            <img src={products[1].image} alt={products[1].name} />
-            <figcaption>piña · dulce natural</figcaption>
-          </figure>
-          <figure className="polaroid p3">
-            <img src={products[2].image} alt={products[2].name} />
-            <figcaption>manzana · con canela</figcaption>
-          </figure>
+          {products.slice(0, 3).map((p, i) => (
+            <figure className={`polaroid p${i + 1}`} key={p.id}>
+              <img src={p.image} alt={p.name} />
+              <figcaption>{p.name.toLowerCase()} · {p.category}</figcaption>
+            </figure>
+          ))}
           <div className="sun-badge" aria-hidden="true">
             <svg viewBox="0 0 120 120">
               <defs><path id="circ" d="M60,60 m-44,0 a44,44 0 1,1 88,0 a44,44 0 1,1 -88,0" /></defs>
@@ -60,12 +54,12 @@ export default function Hero() {
   );
 }
 
-const ITEMS = ['Mango', 'Piña', 'Manzana', 'Tomate seco', 'Chile ancho', 'Jengibre', 'Albahaca', 'Té limón', 'Mix senderista'];
-
 export function Marquee() {
+  const { products } = useShop();
+  const names = products.length ? products.map(p => p.name) : ['Solaria · deshidratados'];
   const group = (
     <div className="mgroup">
-      {ITEMS.map(i => <span key={i}>{i} <i>✳</i></span>)}
+      {names.map(i => <span key={i}>{i} <i>✳</i></span>)}
     </div>
   );
   return (

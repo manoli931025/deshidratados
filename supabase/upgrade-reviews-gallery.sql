@@ -12,9 +12,9 @@ alter table public.products
 alter table public.variants
   drop column if exists image;
 alter table public.variants
-  add column if not exists images text[] not null default '\{\}';
-update public.variants set images = '\{\}' where images is null;
-alter table public.variants alter column images set default '\{\}';
+  add column if not exists images text[] not null default '{}';
+update public.variants set images = '{}' where images is null;
+alter table public.variants alter column images set default '{}';
 alter table public.variants alter column images set not null;
 
 -- 2. RESEÑAS · Tabla de opiniones de clientes

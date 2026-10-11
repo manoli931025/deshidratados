@@ -11,6 +11,14 @@ export const money = (n) => `$${Number(n || 0).toFixed(Number.isInteger(Number(n
 
 export const ORDER_STATUS = ['Nuevo', 'Confirmado', 'Enviado', 'Completado', 'Cancelado'];
 
+export const STATUS_HINTS = {
+  Nuevo: 'Recién recibido, sin contactar aún.',
+  Confirmado: 'Ya hablaste con el cliente y acordaste el pago/envío.',
+  Enviado: 'Empacado y entregado a la paquetería o en camino.',
+  Completado: 'Entregado y pagado. Pedido cerrado.',
+  Cancelado: 'El cliente o la tienda lo anularon.'
+};
+
 export const STATUS_CLASS = (s) => {
   const map = {
     Nuevo: 'st-new',

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Reveal from './Reveal';
 import { useShop } from '../data/shop';
+import { supabase, configured } from '../data/supabase';
 
 const STEPS = [
   { n: '01', t: 'Cosecha', d: 'Compramos fruta y verdura de temporada directo a productores locales, en su punto exacto de maduración.' },
@@ -36,12 +37,64 @@ export function Process() {
 }
 
 const QUOTES = [
-  { txt: 'El mango sabe a mango de verdad. Mis hijos lo piden más que las gomitas.', who: 'Mariana G. · cliente desde 2021', r: '-1.6deg' },
-  { txt: 'Compro el mix senderista cada mes para mis rutas. Aguanta calor, lluvia y mochila revuelta.', who: 'Luis A. · guía de montaña', r: '1.4deg' },
-  { txt: 'Uso sus tomates secos en el restaurante. Una concentración de sabor que no encuentro en ningún proveedor.', who: 'Chef Renata V. · cocina de autor', r: '-1deg' },
+  { txt: 'El mango sabe a mango de verdad. Mis hijos lo piden más que las gomitas.', who: 'Mariana G. · cliente desde 2021', r: '-1.6deg', rating: 5 },
+  { txt: 'Compro el mix senderista cada mes para mis rutas. Aguanta calor, lluvia y mochila revuelta.', who: 'Luis A. · guía de montaña', r: '1.4deg', rating: 5 },
+  { txt: 'Uso sus tomates secos en el restaurante. Una concentración de sabor que no encuentro en ningún proveedor.', who: 'Chef Renata V. · cocina de autor', r: '-1deg', rating: 5 },
 ];
 
 export function Testimonials() {
+  const { products } = useShop();
+  const [reviews, setReviews] = useState([]);
+  const [form, setForm] = useState({ author: '', comment: '', rating: 5, product_id: '' });
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    if (!configured || !supabase) return;
+    supabase.from('reviews').select('*, products(name)')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false })
+      .limit(6)
+      .then(({ data }) => { if (data && data.length) setReviews(data); });
+  }, []);
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    if (!configured || !supabase) { setSent(true); return; }
+    setErr('');
+    setSending(true);
+    const { error } = await supabase.from('reviews').insert({
+      author: form.author.trim(),
+      comment: form.comment.trim(),
+      rating: Number(form.rating),
+      product_id: form.product_id || null,
+      status: 'pending'
+    });
+    setSending(false);
+    if (error) {
+      console.error('Error al enviar reseña:', error);
+      const msg = /does not exist|schema cache/i.test(error.message || '')
+        ? 'Las reseñas aún no están habilitadas. Ejecuta el archivo supabase/upgrade-reviews-gallery.sql en Supabase.'
+        : `No se pudo enviar. (${error.message || 'Error desconocido'})`;
+      setErr(msg);
+      return;
+    }
+    setSent(true);
+    setOpen(false);
+  };
+
+  const items = reviews.length
+    ? reviews.map((r, i) => ({
+        txt: r.comment,
+        who: r.author,
+        rating: r.rating,
+        product: r.products ? r.products.name : null,
+        r: `${(i % 2 ? 1.2 : -1.4)}deg`
+      }))
+    : QUOTES;
+
   return (
     <section id="opiniones" className="section">
       <div className="wrap">
@@ -50,15 +103,51 @@ export function Testimonials() {
           <div><p className="eyebrow">Opiniones</p><h2>Lo que dicen los que ya probaron</h2></div>
         </header>
         <div className="quotes">
-          {QUOTES.map((q, i) => (
-            <Reveal key={q.who} delay={i * 120}>
+          {items.map((q, i) => (
+            <Reveal key={q.who + i} delay={i * 120}>
               <blockquote className="quote" style={{ '--r': q.r }}>
-                <div className="quote-stars">★★★★★</div>
+                {q.product && <span className="quote-product">{q.product}</span>}
+                <div className="quote-stars">{'★'.repeat(q.rating || 5)}{'☆'.repeat(5 - (q.rating || 5))}</div>
                 <p>{q.txt}</p>
                 <cite className="quote-author">{q.who}</cite>
               </blockquote>
             </Reveal>
           ))}
+        </div>
+        <div className="review-cta">
+          {sent ? (
+            <p className="news-ok">☀ ¡Gracias! Tu reseña será visible tras su aprobación.</p>
+          ) : open ? (
+            <form className="review-form" onSubmit={onSubmit}>
+              <h3>Deja tu reseña</h3>
+              <div className="review-row">
+                <input placeholder="Tu nombre" value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))} required maxLength={60} />
+                <select className="review-stars-sel" value={form.rating} onChange={e => setForm(f => ({ ...f, rating: e.target.value }))}>
+                  {[5, 4, 3, 2, 1].map(n => <option key={n} value={n}>{'★'.repeat(n)} ({n})</option>)}
+                </select>
+              </div>
+              <div className="review-row">
+                <select value={form.product_id} onChange={e => setForm(f => ({ ...f, product_id: e.target.value }))}>
+                  <option value="">— Opinión general —</option>
+                  {products.filter(p => p.dbId).map(p => <option key={p.dbId} value={p.dbId}>{p.name}</option>)}
+                </select>
+              </div>
+              <textarea placeholder="Cuéntanos cómo te pareció…" value={form.comment} onChange={e => setForm(f => ({ ...f, comment: e.target.value }))} required rows={3} maxLength={400} />
+              {err && <p className="review-err">{err}</p>}
+              <div className="review-actions">
+                <button className="btn btn-primary" type="submit" disabled={sending}>{sending ? 'Enviando…' : 'Enviar reseña'}</button>
+                <button className="btn" type="button" onClick={() => setOpen(false)}>Cancelar</button>
+              </div>
+            </form>
+          ) : (
+            <button className="btn review-open-btn" onClick={() => setOpen(true)}>
+              <svg className="review-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+              Escribir una reseña
+            </button>
+          )}
         </div>
       </div>
     </section>
