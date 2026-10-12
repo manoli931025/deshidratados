@@ -174,7 +174,13 @@ export default function Orders() {
         />
         <button className={'adm-chip' + (filter === 'all' ? ' on' : '')} onClick={() => setFilter('all')}>Todos ({counts.all})</button>
         {ORDER_STATUS.map(s => (
-          <button key={s} className={'adm-chip' + (filter === s ? ' on' : '')} onClick={() => setFilter(s)}>{s} ({counts[s] || 0})</button>
+          <button
+            key={s}
+            className={'adm-chip' + (filter === s ? ' on' : '') + (s === 'Nuevo' && counts.Nuevo > 0 ? ' pulse' : '')}
+            onClick={() => setFilter(s)}
+          >
+            {s} ({counts[s] || 0})
+          </button>
         ))}
       </div>
       {orders.length === 0 && !err && <p className="adm-muted">Aún no hay pedidos.</p>}

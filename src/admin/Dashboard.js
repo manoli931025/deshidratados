@@ -12,7 +12,7 @@ export default function Dashboard() {
     let alive = true;
     Promise.all([
       supabase.from('products').select('active'),
-      supabase.from('orders').select('total').order('created_at', { ascending: false }).limit(5)
+      supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(3)
     ]).then(([pRes, oRes]) => {
       if (!alive) return;
       const products = pRes.data || [];
@@ -41,7 +41,7 @@ export default function Dashboard() {
       <div className="adm-cards">
         <div className="adm-stat"><b>{stats.products}</b><span>Productos</span></div>
         <div className="adm-stat"><b>{stats.active}</b><span>Activos</span></div>
-        <div className="adm-stat"><b>{stats.orders}</b><span>Pedidos recientes (5)</span></div>
+        <div className="adm-stat"><b>{stats.orders}</b><span>Pedidos recientes (3)</span></div>
         <div className="adm-stat"><b>{money(stats.revenue)}</b><span>Monto de esos pedidos</span></div>
       </div>
 
