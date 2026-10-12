@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase, publicImageUrl } from '../data/supabase';
 import { money, fmtDate } from './helpers';
@@ -7,6 +7,7 @@ export default function Products() {
   const [rows, setRows] = useState([]);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const [search, setSearch] = useState('');
 
   const load = async () => {
     setErr('');
@@ -49,6 +50,17 @@ export default function Products() {
     load();
   };
 
+  // Filtra por búsqueda (nombre, categoría o etiqueta).
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter(p =>
+      (p.name || '').toLowerCase().includes(q) ||
+      (p.categoryLabel || '').toLowerCase().includes(q) ||
+      (p.badge || '').toLowerCase().includes(q)
+    );
+  }, [rows, search]);
+
   return (
     <section>
       <header className="adm-head">
@@ -59,8 +71,19 @@ export default function Products() {
         <Link className="adm-btn" to="/admin/productos/nuevo">+ Nuevo producto</Link>
       </header>
       {err && <p className="adm-err">{err}</p>}
+      <div className="adm-filters">
+        <input
+          className="adm-search"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="🔍 Buscar por nombre, categoría o etiqueta…"
+          aria-label="Buscar productos"
+        />
+      </div>
       {rows.length === 0 && !err ? (
         <p className="adm-muted">Cargando…</p>
+      ) : filtered.length === 0 ? (
+        <p className="adm-muted">No se encontraron productos con esa búsqueda.</p>
       ) : (
         <div className="adm-table-wrap">
           <table className="adm-table">
@@ -68,7 +91,7 @@ export default function Products() {
               <tr><th></th><th>Nombre</th><th>Categoría</th><th>Precios</th><th>Estado</th><th>Actualizado</th><th></th></tr>
             </thead>
             <tbody>
-              {rows.map(p => (
+              {filtered.map(p => (
                 <tr key={p.id}>
                   <td>
                     <img className="adm-thumb" src={publicImageUrl(p.image)} alt="" onError={e => { e.currentTarget.style.visibility = 'hidden'; }} />

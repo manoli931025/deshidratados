@@ -7,6 +7,7 @@ export default function Orders() {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
   const [openHint, setOpenHint] = useState(null);
   const [stock, setStock] = useState(null); // Mapa de disponibilidad por id de variante
   const [editPhone, setEditPhone] = useState(null); // id del pedido cuyo teléfono se está capturando
@@ -128,36 +129,56 @@ export default function Orders() {
     return Boolean(stock.names[(it.name || '').toLowerCase()]);
   };
 
+  // Filtra por texto de búsqueda (nombre, teléfono o producto del pedido).
+  const searched = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return orders;
+    return orders.filter(o => {
+      if ((o.customer_name || '').toLowerCase().includes(q)) return true;
+      if ((o.phone || '').toLowerCase().includes(q)) return true;
+      return (o.items || []).some(it => (it.name || '').toLowerCase().includes(q));
+    });
+  }, [orders, search]);
+
   const counts = useMemo(() => {
-    const c = { all: orders.length };
-    ORDER_STATUS.forEach(s => { c[s] = orders.filter(o => o.status === s).length; });
+    const c = { all: searched.length };
+    ORDER_STATUS.forEach(s => { c[s] = searched.filter(o => o.status === s).length; });
     return c;
-  }, [orders]);
+  }, [searched]);
 
   const grouped = useMemo(() => {
-    const filtered = orders.filter(o => filter === 'all' || o.status === filter);
+    const filtered = searched.filter(o => filter === 'all' || o.status === filter);
     const groups = {};
     filtered.forEach(o => { (groups[o.status] = groups[o.status] || []).push(o); });
+    // ORDER_STATUS ya empieza con 'Nuevo', así que ese grupo queda primero.
     return ORDER_STATUS.filter(s => groups[s]).map(s => ({ status: s, list: groups[s] }));
-  }, [orders, filter]);
+  }, [searched, filter]);
 
   return (
     <section>
       <header className="adm-head">
         <div>
           <h2>Pedidos</h2>
-          <p>{orders.length} pedidos registrados.</p>
+          <p>{orders.length} pedido{orders.length !== 1 ? 's' : ''} registrado{orders.length !== 1 ? 's' : ''}.</p>
         </div>
         <button className="adm-btn ghost" onClick={load}>Actualizar</button>
       </header>
       {err && <p className="adm-err">{err}</p>}
       <div className="adm-filters">
+        <input
+          className="adm-search"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="🔍 Buscar por nombre, teléfono o producto…"
+          aria-label="Buscar pedidos"
+        />
         <button className={'adm-chip' + (filter === 'all' ? ' on' : '')} onClick={() => setFilter('all')}>Todos ({counts.all})</button>
         {ORDER_STATUS.map(s => (
           <button key={s} className={'adm-chip' + (filter === s ? ' on' : '')} onClick={() => setFilter(s)}>{s} ({counts[s] || 0})</button>
         ))}
       </div>
       {orders.length === 0 && !err && <p className="adm-muted">Aún no hay pedidos.</p>}
+      {orders.length > 0 && grouped.length === 0 && <p className="adm-muted">No se encontraron pedidos con ese filtro.</p>}
       {grouped.map(group => (
         <div className="adm-order-group" key={group.status}>
           <h3 className="adm-group-title">

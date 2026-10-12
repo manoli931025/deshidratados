@@ -135,6 +135,18 @@ export default function ProductForm() {
     setVariants(vs => vs.map((v, idx) => (idx === i ? { ...v, images: (v.images || []).filter((_, k) => k !== j) } : v)));
   };
 
+  // Mueve una imagen de posición (dir = -1 izquierda, +1 derecha) para organizar el orden.
+  const moveVariantImage = (i, j, dir) => {
+    setVariants(vs => vs.map((v, idx) => {
+      if (idx !== i) return v;
+      const imgs = [...(v.images || [])];
+      const k = j + dir;
+      if (k < 0 || k >= imgs.length) return v;
+      [imgs[j], imgs[k]] = [imgs[k], imgs[j]];
+      return { ...v, images: imgs };
+    }));
+  };
+
   const setVariant = (i, k) => (e) => {
     setVariants(vs => vs.map((v, idx) => (idx === i ? { ...v, [k]: e.target.value } : v)));
   };
@@ -298,9 +310,8 @@ export default function ProductForm() {
         <h3>Precios por presentación</h3>
         <p className="adm-muted small">Cada fila requiere presentación, cantidad con unidad y precio. La etiqueta se genera automáticamente.</p>
         <div className="adm-vars">
-          <div className="adm-var-head"><span>Foto</span><span>Presentación</span><span>Cantidad</span><span>Unidad</span><span>Precio $</span><span></span><span></span></div>
+          <div className="adm-var-head"><span>Foto</span><span>Presentación</span><span>Cantidad</span><span>Unidad</span><span>Precio $</span><span></span></div>
           {variants.map((v, i) => {
-            const autoLabel = `${v.weight}${v.unit ? ' ' + v.unit : ''}`;
             const imgs = v.images || [];
             return (
               <div className="adm-var-block" key={i}>
@@ -325,14 +336,17 @@ export default function ProductForm() {
                   </select>
                   <input type="number" min="1" step="any" value={v.price} onChange={setVariant(i, 'price')} placeholder="45" required />
                   <button type="button" className="adm-linkbtn danger" onClick={() => setVariants(vs => vs.filter((_, idx) => idx !== i))}>Quitar</button>
-                  <span className="adm-var-preview small adm-muted">{autoLabel}</span>
                 </div>
                 {imgs.length > 0 && (
                   <div className="adm-var-thumbs">
                     {imgs.map((img, j) => (
                       <span className="adm-var-thumb" key={j}>
                         <img src={publicImageUrl(img)} alt="" />
-                        <button type="button" className="adm-thumb-x" onClick={() => removeVariantImage(i, j)} title="Quitar foto">✕</button>
+                        <span className="adm-thumb-ctrl">
+                          <button type="button" onClick={() => moveVariantImage(i, j, -1)} disabled={j === 0} title="Mover a la izquierda">‹</button>
+                          <button type="button" onClick={() => moveVariantImage(i, j, 1)} disabled={j === imgs.length - 1} title="Mover a la derecha">›</button>
+                          <button type="button" className="x" onClick={() => removeVariantImage(i, j)} title="Quitar foto">✕</button>
+                        </span>
                       </span>
                     ))}
                   </div>

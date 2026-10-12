@@ -50,7 +50,7 @@ export default function Presentations() {
   };
 
   const remove = async (row) => {
-    if (counts[row.id] > 0) { setErr(`La presentación "${row.name}" está en uso por ${counts[row.id]} precio(s). Quiéralos o edítalos antes de eliminar.`); return; }
+    if (counts[row.id] > 0) { setErr(`La presentación "${row.name}" está en uso por ${counts[row.id]} variante(s). Quiéralas o edítalas antes de eliminar.`); return; }
     if (!window.confirm(`¿Eliminar la presentación "${row.name}"?`)) return;
     setBusy(true);
     const { error } = await supabase.from('presentations').delete().eq('id', row.id);
@@ -91,7 +91,7 @@ export default function Presentations() {
         {rows.length === 0 && <p className="adm-muted">Aún no hay presentaciones.</p>}
         <div className="adm-table-wrap">
           <table className="adm-table">
-            <thead><tr><th>Nombre</th><th>Slug</th><th>Orden</th><th>Precios</th><th></th></tr></thead>
+            <thead><tr><th>Nombre</th><th>Slug</th><th>Orden</th><th>Variantes en uso</th><th></th></tr></thead>
             <tbody>
               {rows.map((r, i) => (
                 <tr key={r.id}>

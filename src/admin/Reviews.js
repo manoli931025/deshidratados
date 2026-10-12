@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../data/supabase';
 import { fmtDate } from './helpers';
 
 const STATUS_LABEL = { pending: 'Pendiente', approved: 'Aprobada', rejected: 'Rechazada' };
 const STATUS_CLASS = { pending: 'st-conf', approved: 'st-done', rejected: 'st-cancel' };
+const FILTERS = ['pending', 'approved', 'rejected', 'all'];
 
 export default function Reviews() {
   const [reviews, setReviews] = useState([]);
   const [filter, setFilter] = useState('pending');
+  const [search, setSearch] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -40,30 +42,60 @@ export default function Reviews() {
     load();
   };
 
-  const shown = reviews.filter(r => filter === 'all' || r.status === filter);
+  // Filtra por búsqueda (autor, comentario o producto).
+  const searched = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return reviews;
+    return reviews.filter(r => {
+      if ((r.author || '').toLowerCase().includes(q)) return true;
+      if ((r.comment || '').toLowerCase().includes(q)) return true;
+      const pname = r.products ? r.products.name : '';
+      return pname.toLowerCase().includes(q);
+    });
+  }, [reviews, search]);
+
+  const counts = useMemo(() => {
+    const c = { all: searched.length };
+    FILTERS.forEach(f => { if (f !== 'all') c[f] = searched.filter(r => r.status === f).length; });
+    return c;
+  }, [searched]);
+
+  // Pendientes (nuevas) primero; dentro de cada filtro, las más recientes ya vienen primero.
+  const shown = useMemo(() => {
+    const list = searched.filter(r => filter === 'all' || r.status === filter);
+    return [...list].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  }, [searched, filter]);
 
   return (
     <section>
       <header className="adm-head">
         <div>
           <h2>Reseñas</h2>
-          <p>{reviews.filter(r => r.status === 'pending').length} pendientes de revisar.</p>
+          <p>{reviews.filter(r => r.status === 'pending').length} pendiente{reviews.filter(r => r.status === 'pending').length !== 1 ? 's' : ''} de revisar.</p>
         </div>
         <button className="adm-btn ghost" onClick={load}>Actualizar</button>
       </header>
       {err && <p className="adm-err">{err}</p>}
       <div className="adm-filters">
-        {['pending', 'approved', 'rejected', 'all'].map(f => (
+        <input
+          className="adm-search"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="🔍 Buscar por autor, comentario o producto…"
+          aria-label="Buscar reseñas"
+        />
+        {FILTERS.map(f => (
           <button
             key={f}
             className={'adm-chip' + (filter === f ? ' on' : '')}
             onClick={() => setFilter(f)}
           >
-            {f === 'all' ? 'Todas' : STATUS_LABEL[f]}
+            {f === 'all' ? `Todas (${counts.all})` : `${STATUS_LABEL[f]} (${counts[f] || 0})`}
           </button>
         ))}
       </div>
-      {shown.length === 0 && !err && <p className="adm-muted">No hay reseñas con este filtro.</p>}
+      {reviews.length === 0 && !err && <p className="adm-muted">Aún no hay reseñas.</p>}
+      {reviews.length > 0 && shown.length === 0 && <p className="adm-muted">No se encontraron reseñas con ese filtro.</p>}
       <div className="adm-orders">
         {shown.map(r => (
           <div className="adm-card adm-order" key={r.id}>
