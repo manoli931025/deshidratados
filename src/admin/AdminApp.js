@@ -9,6 +9,7 @@ import Categories from './Categories';
 import Presentations from './Presentations';
 import Reviews from './Reviews';
 import Orders from './Orders';
+import Subscribers from './Subscribers';
 import Settings from './Settings';
 import './admin.css';
 
@@ -25,6 +26,7 @@ function AdminLayout() {
           <NavLink to="/admin/presentaciones">Presentaciones</NavLink>
           <NavLink to="/admin/resenas">Reseñas</NavLink>
           <NavLink to="/admin/pedidos">Pedidos</NavLink>
+          <NavLink to="/admin/suscriptores">Suscriptores</NavLink>
           <NavLink to="/admin/configuracion">Configuración</NavLink>
         </nav>
       </aside>
@@ -74,6 +76,7 @@ export default function AdminApp() {
             <Route path="presentaciones" element={<Presentations />} />
             <Route path="resenas" element={<Reviews />} />
             <Route path="pedidos" element={<Orders />} />
+            <Route path="suscriptores" element={<Subscribers />} />
             <Route path="configuracion" element={<Settings />} />
           </Route>
         </Route>

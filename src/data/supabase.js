@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { SHOP } from './config';
 
 const url = process.env.REACT_APP_SUPABASE_URL;
 const anonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
@@ -15,14 +16,39 @@ export function publicImageUrl(path) {
   return `${url.replace(/\/$/, '')}/storage/v1/object/public/${IMAGES_BUCKET}/${path}`;
 }
 
-export const SETTINGS_KEYS = ['shopName', 'whatsapp', 'freeShip'];
+// Claves editables desde /admin → Configuración. Si agregas una aquí,
+// recuerda: (1) su valor por defecto en config.js, (2) su fila en supabase/schema.sql.
+export const SETTINGS_KEYS = [
+  'shopName', 'whatsapp', 'freeShip',
+  'email', 'instagram', 'hours',
+  'currencyBase', 'rateCUP', 'rateEUR'
+];
 
+// Convierte las filas de la tabla settings en el objeto que usa la tienda.
+// Los valores por defecto salen de config.js, así la tienda nunca queda vacía
+// aunque la base todavía no tenga las filas nuevas.
 export function moneySettings(rows) {
-  const map = { shopName: 'Solaria', whatsapp: '', freeShip: '600' };
-  rows.forEach(r => { map[r.key] = r.value; });
+  const map = {
+    shopName: SHOP.name,
+    whatsapp: SHOP.whatsapp,
+    freeShip: String(SHOP.freeShip),
+    email: SHOP.email,
+    instagram: SHOP.instagram,
+    hours: SHOP.hours,
+    currencyBase: SHOP.currencyBase,
+    rateCUP: SHOP.rateCUP,
+    rateEUR: SHOP.rateEUR
+  };
+  rows.forEach(r => { if (r.key in map) map[r.key] = r.value; });
   return {
     name: map.shopName,
     whatsapp: map.whatsapp,
-    freeShip: Number(map.freeShip) || 0
+    freeShip: Number(map.freeShip) || 0,
+    email: map.email,
+    instagram: map.instagram,
+    hours: map.hours,
+    currencyBase: map.currencyBase,
+    rateCUP: map.rateCUP,
+    rateEUR: map.rateEUR
   };
 }

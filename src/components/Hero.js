@@ -1,8 +1,11 @@
 import { useShop } from '../data/shop';
+import { useCurrency } from '../data/currency';
 
 export default function Hero() {
   const { products } = useShop();
-  const desde = Math.min(...products.flatMap(p => p.variants.map(v => v.price)));
+  const { fmt } = useCurrency();
+  const prices = products.flatMap(p => p.variants.map(v => v.price));
+  const desde = prices.length ? Math.min(...prices) : 0;
   return (
     <section className="hero" id="top">
       <div className="wrap hero-grid">
@@ -47,7 +50,7 @@ export default function Hero() {
               </g>
             </svg>
           </div>
-          <span className="sticker">desde ${desde}</span>
+          <span className="sticker">desde {fmt(desde)}</span>
         </div>
       </div>
     </section>

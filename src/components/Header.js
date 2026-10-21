@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { useShop } from '../data/shop';
+import { CURRENCIES, useCurrency } from '../data/currency';
 
 export default function Header({ onCartOpen }) {
   const { itemCount, total } = useCart();
   const { shop, products } = useShop();
+  const { currency, setCurrency, fmt } = useCurrency();
   const [msg, setMsg] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [menu, setMenu] = useState(false);
   const countRef = useRef(null);
 
   const MSGS = [
-    `Envío gratis en pedidos mayores a $${shop.freeShip}`,
+    `Envío gratis en pedidos mayores a ${fmt(shop.freeShip)}`,
     products.length
       ? `Nuevo: ${products[0].name} · solo ${products[0].origin}`
       : 'Nueva cosecha disponible',
@@ -47,8 +49,19 @@ export default function Header({ onCartOpen }) {
             <a href="#opiniones">Opiniones</a>
             <a href="#preguntas">Preguntas</a>
           </nav>
+          <select
+            className="cur-sel"
+            value={currency}
+            onChange={e => setCurrency(e.target.value)}
+            aria-label="Moneda de precios"
+            title="Ver los precios en…"
+          >
+            {CURRENCIES.map(c => (
+              <option key={c.code} value={c.code}>{c.flag} {c.code}</option>
+            ))}
+          </select>
           <button className="cart-btn" onClick={onCartOpen}>
-            🧺 {itemCount > 0 && <span className="cart-total">${total}</span>}
+            🧺 {itemCount > 0 && <span className="cart-total">{fmt(total)}</span>}
             <span className="cart-count" ref={countRef}>{itemCount}</span>
           </button>
           <button className={'burger' + (menu ? ' open' : '')} onClick={() => setMenu(!menu)} aria-label="Menú">

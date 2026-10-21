@@ -1,11 +1,13 @@
 import { useCart } from '../context/CartContext';
 import { useShop } from '../data/shop';
+import { useCurrency } from '../data/currency';
 import CheckoutForm from './CheckoutForm';
 
 export default function CartDrawer({ isOpen, onClose }) {
   const { cart, updateQuantity, removeFromCart, clearCart, total, itemCount } = useCart();
   const { shop } = useShop();
-  const pct = Math.min(100, (total / shop.freeShip) * 100);
+  const { fmt, currency, isBase } = useCurrency();
+  const pct = shop.freeShip > 0 ? Math.min(100, (total / shop.freeShip) * 100) : 0;
 
   return (
     <>
@@ -27,7 +29,7 @@ export default function CartDrawer({ isOpen, onClose }) {
               <img src={item.image} alt="" />
               <div>
                 <div className="c-name">{item.name}</div>
-                <div className="c-meta">{item.variant.label} · ${item.variant.price} c/u</div>
+                <div className="c-meta">{item.variant.label} · {fmt(item.variant.price)} c/u</div>
                 <div className="c-controls">
                   <button onClick={() => updateQuantity(item.id, item.variant.id, item.quantity - 1)} aria-label="Menos">−</button>
                   <span className="qty">{item.quantity}</span>
@@ -35,7 +37,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div className="c-total">${item.quantity * item.variant.price}</div>
+                <div className="c-total">{fmt(item.quantity * item.variant.price)}</div>
                 <button className="c-del" onClick={() => removeFromCart(item.id, item.variant.id)}>quitar</button>
               </div>
             </div>
@@ -43,11 +45,22 @@ export default function CartDrawer({ isOpen, onClose }) {
         </div>
         {cart.length > 0 && (
           <div className="drawer-foot">
-            <div className="ship-bar"><div className="ship-fill" style={{ width: pct + '%' }} /></div>
-            <p className="ship-msg">
-              {total >= shop.freeShip ? '🎉 ¡Tienes envío gratis!' : `Te faltan $${shop.freeShip - total} para envío gratis`}
-            </p>
-            <div className="subtotal-row"><span>Subtotal</span><b>${total}</b></div>
+            {shop.freeShip > 0 && (
+              <>
+                <div className="ship-bar"><div className="ship-fill" style={{ width: pct + '%' }} /></div>
+                <p className="ship-msg">
+                  {total >= shop.freeShip
+                    ? '🎉 ¡Tienes envío gratis!'
+                    : `Te faltan ${fmt(shop.freeShip - total)} para envío gratis`}
+                </p>
+              </>
+            )}
+            {!isBase && (
+              <p className="cur-note">
+                Precios convertidos a {currency}. El importe final se fija en {shop.currencyBase} por WhatsApp.
+              </p>
+            )}
+            <div className="subtotal-row"><span>Subtotal</span><b>{fmt(total)}</b></div>
             <CheckoutForm items={cart} total={total} onPlaced={clearCart} />
             <button className="clear-btn" onClick={clearCart}>Vaciar canasta</button>
           </div>

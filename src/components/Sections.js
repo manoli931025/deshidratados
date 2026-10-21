@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Reveal from './Reveal';
 import { useShop } from '../data/shop';
+import { LEGAL, LEGAL_ORDER } from '../data/legalContent';
 import { supabase, configured } from '../data/supabase';
 
 const STEPS = [
@@ -156,7 +158,10 @@ export function Testimonials() {
 
 const FAQS = [
   { q: '¿Los productos llevan azúcar o conservadores?', a: 'No. Solo el producto y, en algunos mixes, especias. Nada de sulfitos, colorantes ni azúcar añadida. Por eso los colores son los reales: más apagados que un producto industrial, pero con sabor de verdad.' },
-  { q: '¿Cuánto tarda el envío?', a: 'Despachamos en 24–48 horas después de confirmar tu pedido. La entrega local es al día siguiente y los envíos nacionales tardan de 2 a 5 días según la paquetería.' },
+  { q: '¿Puedo pedir si estoy fuera de Cuba?', a: 'Sí. Hacemos envíos a toda la isla y muchos clientes piden desde el exterior para sus familias en Cuba. Tú eliges los productos, dejas tu teléfono de contacto y coordinamos la entrega en Cuba por WhatsApp. Si compras desde fuera te indicamos las opciones de pago disponibles en tu país.' },
+  { q: '¿En qué moneda están los precios?', a: 'Puedes verlos en pesos cubanos (CUP), dólares (USD) o euros (EUR) con el selector de moneda de la página. Los precios se convierten al tipo de cambio que fija la tienda y el importe final siempre se acuerda y confirma por WhatsApp.' },
+  { q: '¿Cómo se paga el pedido?', a: 'Transfermóvil o depósito bancario (BPA, BANMET), tarjeta MLC, efectivo al recibir, o remesa y transferencia desde el exterior (Zelle, USDT/TRON). Lo combinamos según estés en Cuba o fuera y te lo confirmamos por WhatsApp antes de enviar.' },
+  { q: '¿Cuánto tarda y cuánto cuesta el envío?', a: 'Despachamos en 24–48 horas después de confirmar el pedido. La entrega local es al día siguiente y en el resto del país tarda de 2 a 5 días. El envío es gratis desde el monto indicado en la tienda; por debajo, se cobra según la provincia.' },
   { q: '¿Hacen pedidos al por mayor?', a: 'Sí: atendemos tiendas, restaurantes, cafeterías y eventos. Escríbenos por WhatsApp con los productos y cantidades que necesitas y te armamos una cotización con precio especial.' },
   { q: '¿Cómo conservo mis deshidratados al llegar?', a: 'Guárdalos en un lugar fresco, seco y oscuro, con el sello bien cerrado. Sin abrir duran hasta 12 meses; una vez abiertos, te recomendamos consumirlos en 2–3 semanas.' },
   { q: '¿La fruta deshidratada conserva sus nutrientes?', a: 'La mayor parte sí. Al secar a baja temperatura se conserva la fibra, los minerales y gran parte de las vitaminas. Lo único que se va es el agua.' },
@@ -187,7 +192,36 @@ export function Faq() {
 }
 
 export function Newsletter() {
+  const [email, setEmail] = useState('');
   const [done, setDone] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    setErr('');
+    // Sin Supabase (modo demo) solo confirmamos en pantalla, como antes.
+    if (!configured || !supabase) { setDone(true); return; }
+    setBusy(true);
+    const { error } = await supabase.from('subscribers')
+      .insert({ email: email.trim().toLowerCase() });
+    setBusy(false);
+    if (error) {
+      // 23505 = email ya registrado → mismo mensaje de éxito, sin asustar al usuario.
+      if (error.code === '23505' || /duplicate|unique/i.test(error.message || '')) {
+        setDone(true);
+        return;
+      }
+      console.error('Error al suscribir:', error);
+      const msg = /does not exist|schema cache/i.test(error.message || '')
+        ? 'El boletín aún no está habilitado. Ejecuta el archivo supabase/upgrade-subscribers-settings.sql en Supabase.'
+        : 'No se pudo registrar. Intenta de nuevo en unos segundos.';
+      setErr(msg);
+      return;
+    }
+    setDone(true);
+  };
+
   return (
     <section className="news">
       <div className="wrap news-grid">
@@ -198,11 +232,20 @@ export function Newsletter() {
         {done ? (
           <p className="news-ok">☀ ¡Listo! Te avisaremos del próximo horneado.</p>
         ) : (
-          <form className="news-form" onSubmit={e => { e.preventDefault(); setDone(true); }}>
-            <input type="email" placeholder="tu@correo.com" required aria-label="Tu correo" />
-            <button type="submit">Unirme</button>
+          <form className="news-form" onSubmit={onSubmit}>
+            <input
+              type="email"
+              placeholder="tu@correo.com"
+              required
+              aria-label="Tu correo"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              disabled={busy}
+            />
+            <button type="submit" disabled={busy}>{busy ? 'Enviando…' : 'Unirme'}</button>
           </form>
         )}
+        {err && <p className="news-err">{err}</p>}
       </div>
     </section>
   );
@@ -210,6 +253,15 @@ export function Newsletter() {
 
 export function Footer() {
   const { shop } = useShop();
+  const lines = String(shop.hours || '').split('\n').map(s => s.trim()).filter(Boolean);
+  // "@usuario" → enlace directo al perfil; una URL completa se respeta tal cual.
+  const igRaw = String(shop.instagram || '').trim();
+  const igHandle = igRaw.replace(/^@/, '');
+  const igHref = igRaw
+    ? (/^https?:\/\//i.test(igRaw) ? igRaw : `https://instagram.com/${igHandle}`)
+    : '';
+  const email = String(shop.email || '').trim();
+
   return (
     <footer className="footer">
       <div className="wrap">
@@ -225,14 +277,24 @@ export function Footer() {
           <div>
             <h4>Contacto</h4>
             <a href={`https://wa.me/${shop.whatsapp}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>
-            <a href="mailto:hola@solaria.mx">hola@solaria.mx</a>
-            <p>Instagram @solaria.seca</p>
+            {email && <a href={`mailto:${email}`}>{email}</a>}
+            {igHref && (
+              <a href={igHref} target="_blank" rel="noopener noreferrer">
+                Instagram {igHandle ? `@${igHandle}` : ''}
+              </a>
+            )}
           </div>
+          {lines.length > 0 && (
+            <div>
+              <h4>Horario</h4>
+              {lines.map(l => <p key={l}>{l}</p>)}
+            </div>
+          )}
           <div>
-            <h4>Horario</h4>
-            <p>Lun – Vie · 9:00 – 18:00</p>
-            <p>Sábado · 9:00 – 14:00</p>
-            <p>Domingo · el sol descansa</p>
+            <h4>Legal</h4>
+            {LEGAL_ORDER.map(s => (
+              <Link key={s} to={`/doc/${s}`}>{LEGAL[s].title}</Link>
+            ))}
           </div>
         </div>
         <div className="foot-bottom">

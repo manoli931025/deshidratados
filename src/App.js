@@ -7,8 +7,24 @@ import Hero, { Marquee } from './components/Hero';
 import Catalog from './components/Catalog';
 import { Process, Testimonials, Faq, Newsletter, Footer } from './components/Sections';
 import CartDrawer from './components/CartDrawer';
+import LegalPage from './components/LegalPage';
 import AdminApp from './admin/AdminApp';
+import { CurrencyProvider } from './data/currency';
 import './App.css';
+
+function Home() {
+  return (
+    <>
+      <Hero />
+      <Marquee />
+      <Catalog />
+      <Process />
+      <Testimonials />
+      <Faq />
+      <Newsletter />
+    </>
+  );
+}
 
 function Store() {
   const [cartOpen, setCartOpen] = useState(false);
@@ -16,13 +32,10 @@ function Store() {
     <CartProvider>
       <Header onCartOpen={() => setCartOpen(true)} />
       <main>
-        <Hero />
-        <Marquee />
-        <Catalog />
-        <Process />
-        <Testimonials />
-        <Faq />
-        <Newsletter />
+        <Routes>
+          <Route index element={<Home />} />
+          <Route path="doc/:slug" element={<LegalPage />} />
+        </Routes>
       </main>
       <Footer />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
@@ -34,10 +47,12 @@ function App() {
   return (
     <HashRouter>
       <ShopProvider>
-        <Routes>
-          <Route path="/admin/*" element={<AdminApp />} />
-          <Route path="*" element={<Store />} />
-        </Routes>
+        <CurrencyProvider>
+          <Routes>
+            <Route path="/admin/*" element={<AdminApp />} />
+            <Route path="*" element={<Store />} />
+          </Routes>
+        </CurrencyProvider>
       </ShopProvider>
     </HashRouter>
   );

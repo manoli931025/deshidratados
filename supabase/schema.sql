@@ -42,6 +42,14 @@ create table if not exists public.reviews (
   created_at timestamptz not null default now()
 );
 
+-- Suscriptores del boletín (correo del pie de página)
+create table if not exists public.subscribers (
+  id         uuid primary key default gen_random_uuid(),
+  email      text not null,
+  source     text not null default 'footer',
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.presentations (
   id          uuid primary key default gen_random_uuid(),
   slug        text unique not null,
@@ -89,6 +97,8 @@ create index if not exists idx_products_category on public.products(category_id)
 create index if not exists idx_variants_product on public.variants(product_id);
 create index if not exists idx_variants_presentation on public.variants(presentation_id);
 create index if not exists idx_orders_created on public.orders(created_at desc);
+create unique index if not exists idx_subscribers_email on public.subscribers (lower(trim(email)));
+create index if not exists idx_subscribers_created on public.subscribers (created_at desc);
 
 -- ------------------------------------------------------------
 -- SEGURIDAD (Row Level Security)
@@ -102,6 +112,7 @@ alter table public.variants   enable row level security;
 alter table public.settings   enable row level security;
 alter table public.orders     enable row level security;
 alter table public.reviews    enable row level security;
+alter table public.subscribers enable row level security;
 
 -- Catálogo: cualquiera puede leer
 drop policy if exists "categories public read" on public.categories;
@@ -140,6 +151,13 @@ drop policy if exists "reviews public insert" on public.reviews;
 create policy "reviews public insert" on public.reviews for insert with check (status = 'pending');
 drop policy if exists "reviews admin manage" on public.reviews;
 create policy "reviews admin manage" on public.reviews for all to authenticated using (true) with check (true);
+
+-- Suscriptores: cualquiera se registra desde el pie de página.
+-- Sin política de lectura pública: los correos de los clientes no se exponen.
+drop policy if exists "subscribers public insert" on public.subscribers;
+create policy "subscribers public insert" on public.subscribers for insert with check (true);
+drop policy if exists "subscribers admin manage" on public.subscribers;
+create policy "subscribers admin manage" on public.subscribers for all to authenticated using (true) with check (true);
 
 -- ------------------------------------------------------------
 -- STORAGE · Bucket de imágenes de productos
@@ -180,7 +198,13 @@ on conflict (slug) do nothing;
 insert into public.settings (key, value) values
   ('shopName', 'Solaria'),
   ('whatsapp', '5354410057'),
-  ('freeShip', '600')
+  ('freeShip', '100'),
+  ('email',     'hola@solaria.cu'),
+  ('instagram', '@solaria.seca'),
+  ('hours',     E'Lun – Vie · 9:00 – 18:00\nSábado · 9:00 – 14:00\nDomingo · el sol descansa'),
+  ('currencyBase', 'USD'),
+  ('rateCUP',      '250'),
+  ('rateEUR',      '0.92')
 on conflict (key) do nothing;
 
 insert into public.products

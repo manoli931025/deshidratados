@@ -113,6 +113,8 @@
 
 .adm-head p { margin: 4px 0 0; color: var(--adm-mut); }
 
+.adm-head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
 /* Tarjetas y estilos base */
 .adm-card {
   background: var(--adm-card);
@@ -473,6 +475,20 @@
 
 /* Pedidos */
 .adm-orders { display: grid; gap: 14px; }
+
+/* Suscriptores del boletín */
+.adm-sub-list { display: grid; gap: 10px; }
+
+.adm-sub-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: var(--adm-card);
+  border: 1px solid var(--adm-line);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
 
 .adm-order-head {
   display: flex;

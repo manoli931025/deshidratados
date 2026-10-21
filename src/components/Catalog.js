@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useShop } from '../data/shop';
 import { useCart } from '../context/CartContext';
+import { useCurrency } from '../data/currency';
 import Reveal from './Reveal';
 
 function ProductCard({ product }) {
   const { addToCart } = useCart();
+  const { fmt } = useCurrency();
   const [vid, setVid] = useState(null);
   const [added, setAdded] = useState(false);
   const [imgIdx, setImgIdx] = useState(0);
@@ -61,7 +63,7 @@ function ProductCard({ product }) {
           ))}
         </div>
         <div className="p-foot">
-          <span className="p-price">{variant ? `$${variant.price}` : '—'}</span>
+          <span className="p-price">{variant ? fmt(variant.price) : '—'}</span>
           <button className={'btn add-btn' + (added ? ' ok' : '')} onClick={handleAdd} disabled={!variant}>
             {added ? '✓ Agregado' : '+ Agregar'}
           </button>
