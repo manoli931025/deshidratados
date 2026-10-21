@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import { ShopProvider } from './data/shop';
 import Header from './components/Header';
@@ -13,6 +13,18 @@ import { CurrencyProvider } from './data/currency';
 import './App.css';
 
 function Home() {
+  const { pathname } = useLocation();
+
+  // Con HashRouter el ancla "#proceso" es también la URL, así que si entramos
+  // a la portada desde una ruta así (enlace directo o desde una página legal)
+  // reposicionamos la vista en la sección correspondiente.
+  useEffect(() => {
+    const id = pathname.replace(/^\/+/, '');
+    if (!id) return;
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView();
+  }, [pathname]);
+
   return (
     <>
       <Hero />
@@ -33,7 +45,11 @@ function Store() {
       <Header onCartOpen={() => setCartOpen(true)} />
       <main>
         <Routes>
-          <Route index element={<Home />} />
+          {/* Una sola ruta comodín para toda la portada: así "/" y "#proceso"
+              caen en el MISMO route y Home nunca se desmonta. Si se usara
+              <Route index> + otro, cambiar de "#" a "#proceso" desmontaría la
+              tienda y solo quedaría el pie de página (salto al final). */}
+          <Route path="*" element={<Home />} />
           <Route path="doc/:slug" element={<LegalPage />} />
         </Routes>
       </main>
