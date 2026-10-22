@@ -328,10 +328,24 @@ nav.main a:hover::after{transform:scaleX(1);transform-origin:left}
   .sec-note{display:none}
   .foot-grid{grid-template-columns:1fr 1fr}
 }
+/* El encabezado no cabía entre 720px y 900px: el logo con su letrero + la
+   navegación + el selector de moneda + el carrito (gap 1.8rem) superaban el
+   ancho disponible y el carrito se salía por la derecha de la pantalla. */
+@media(max-width:900px){
+  .head-in{gap:1rem}
+  .logo{font-size:1.25rem}
+  .logo small{display:none}
+}
 @media(max-width:720px){
   nav.main{display:none}
   .burger{display:flex}
-  .head-in{height:62px}
+  .head-in{height:62px;gap:.55rem}
+  /* Aun con la navegación colapsada no cabía. El logo trunca con ellipsis
+     como red de seguridad en pantallas de 320px, para que nunca exista
+     scroll horizontal: el carrito y el menú deben ser tocables siempre. */
+  .logo{display:block;font-size:1.1rem;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cur-sel{flex:0 0 auto;padding:.4rem .45rem;font-size:.66rem}
+  .cart-btn{flex:0 0 auto;padding:.45rem .75rem;gap:.4rem}
   .search{min-width:0;width:100%;margin-left:0}
   .foot-grid{grid-template-columns:1fr}
   .section{padding:4rem 0}

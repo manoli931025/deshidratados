@@ -82,14 +82,25 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   padding: 14px 24px;
   border-bottom: 1px solid var(--adm-line);
   background: var(--adm-card);
 }
 
-.adm-user { font-size: 13px; color: var(--adm-mut); }
+/* El correo del usuario no debe empujar "Ver tienda" y "Salir" fuera de la
+   pantalla: se trunca con ellipsis. Los botones, en cambio, nunca se
+   comprimen (flex-shrink:0) porque son lo que hay que poder tocar. */
+.adm-user {
+  font-size: 13px;
+  color: var(--adm-mut);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-.adm-top-actions { display: flex; gap: 12px; align-items: center; }
+.adm-top-actions { display: flex; gap: 12px; align-items: center; flex-shrink: 0; }
 
 .adm-body {
   padding: 24px;
@@ -101,6 +112,7 @@
   justify-content: space-between;
   align-items: flex-end;
   gap: 16px;
+  flex-wrap: wrap;
   margin-bottom: 18px;
 }
 
@@ -582,6 +594,7 @@
     align-items: center;
   }
   .adm-nav { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  .adm-top { padding: 14px 16px; }
   .adm-body { padding: 16px; }
   .adm-grid, .adm-grid.three { grid-template-columns: 1fr; }
   .adm-var-head { display: none; }
