@@ -97,9 +97,11 @@ const setRow = (i, k) => (e) => {
                 <td className="adm-muted">{r.slug}</td>
                 <td><input type="number" value={r.sort_order} onChange={setRow(i, 'sort_order')} /></td>
                 <td>{counts[r.id] || 0}</td>
-                <td className="adm-actions">
-                  <button className="adm-linkbtn" onClick={() => rename(r)}>Guardar</button>
-                  <button className="adm-linkbtn danger" onClick={() => remove(r)} disabled={busy}>Eliminar</button>
+                <td>
+                  <div className="adm-actions">
+                    <button className="adm-linkbtn" onClick={() => rename(r)}>Guardar</button>
+                    <button className="adm-linkbtn danger" onClick={() => remove(r)} disabled={busy}>Eliminar</button>
+                  </div>
                 </td>
               </tr>
             ))}

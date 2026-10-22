@@ -387,6 +387,9 @@
 .adm-table th,
 .adm-table td {
   text-align: left;
+  /* Clave: centrar verticalmente. Sin esto las celdas usan `baseline` y las
+     que contienen controles (acciones, miniaturas) quedan un poco arriba. */
+  vertical-align: middle;
   padding: 10px 12px;
   border-bottom: 1px solid var(--adm-line);
 }
@@ -416,7 +419,11 @@
   background: #f1e8d8;
 }
 
-.adm-actions { white-space: nowrap; display: flex; gap: 12px; align-items: center; }
+/* La celda de acciones debe seguir siendo table-cell. Si se le pone
+   display:flex al <td> directamente, sale del layout de tabla y pierde
+   vertical-align: por eso los botones se veían por encima de la fila.
+   El flex va en un div interno, que sí puede centrar sus hijos. */
+.adm-actions { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
 
 /* Insignias de estado */
 .adm-badge {

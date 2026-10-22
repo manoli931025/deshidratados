@@ -104,10 +104,12 @@ export default function Products() {
                   <td>{p.priceRange}</td>
                   <td><span className={'adm-badge ' + (p.active ? 'st-done' : 'st-cancel')}>{p.active ? 'Activo' : 'Oculto'}</span></td>
                   <td>{fmtDate(p.created_at)}</td>
-                  <td className="adm-actions">
-                    <Link className="adm-link" to={`/admin/productos/${p.slug}`}>Editar</Link>
-                    <button className="adm-linkbtn" onClick={() => toggleActive(p)}>{p.active ? 'Ocultar' : 'Activar'}</button>
-                    <button className="adm-linkbtn danger" onClick={() => remove(p)} disabled={busy}>Eliminar</button>
+                  <td>
+                    <div className="adm-actions">
+                      <Link className="adm-link" to={`/admin/productos/${p.slug}`}>Editar</Link>
+                      <button className="adm-linkbtn" onClick={() => toggleActive(p)}>{p.active ? 'Ocultar' : 'Activar'}</button>
+                      <button className="adm-linkbtn danger" onClick={() => remove(p)} disabled={busy}>Eliminar</button>
+                    </div>
                   </td>
                 </tr>
               ))}
