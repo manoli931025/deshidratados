@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, useLocation, useNavigationType } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import { ShopProvider } from './data/shop';
 import Header from './components/Header';
@@ -13,18 +13,6 @@ import { CurrencyProvider } from './data/currency';
 import './App.css';
 
 function Home() {
-  const { pathname } = useLocation();
-
-  // Con HashRouter el ancla "#proceso" es también la URL, así que si entramos
-  // a la portada desde una ruta así (enlace directo o desde una página legal)
-  // reposicionamos la vista en la sección correspondiente.
-  useEffect(() => {
-    const id = pathname.replace(/^\/+/, '');
-    if (!id) return;
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView();
-  }, [pathname]);
-
   return (
     <>
       <Hero />
@@ -36,6 +24,30 @@ function Home() {
       <Newsletter />
     </>
   );
+}
+
+// Sincroniza la posición de la vista con la ruta.
+//   · "#proceso" y demás anclas de la portada -> scroll a esa sección.
+//   · Página nueva (documento legal) -> principio.
+//   · Al volver atrás (POP) no se toca nada: se respeta el scroll guardado.
+//
+// Sin esto, al entrar a una página legal el navegador conserva la posición
+// del pie; como la página legal es más corta que la tienda, el navegador
+// "comprime" el scroll hasta el final y se ve el final del documento.
+function ScrollManager() {
+  const { pathname } = useLocation();
+  const navType = useNavigationType();
+
+  useEffect(() => {
+    const id = pathname.replace(/^\/+/, '');
+    const el = id ? document.getElementById(id) : null;
+    if (el) { el.scrollIntoView(); return; }
+    // 'instant' a propósito: html{} tiene scroll-behavior:smooth, y cambiar
+    // de página no debe arrastrar una animación de todo el alto de la tienda.
+    if (navType !== 'POP') window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname, navType]);
+
+  return null;
 }
 
 function Store() {
@@ -62,6 +74,7 @@ function Store() {
 function App() {
   return (
     <HashRouter>
+      <ScrollManager />
       <ShopProvider>
         <CurrencyProvider>
           <Routes>
