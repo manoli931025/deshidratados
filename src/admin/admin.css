@@ -383,6 +383,90 @@
   padding-top: 6px;
 }
 
+/* --- Boletín: editor + vista previa + confirmación --- */
+
+/* Botón de enlace dentro de un formulario. `.adm-form button` le impondría
+   fondo de color y padding, así que hace falta un selector más específico
+   para dejarlo como enlace. */
+.adm-form button.adm-newsletter-restore {
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+.adm-newsletter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .adm-newsletter-grid { grid-template-columns: 1fr; }
+}
+
+.adm-newsletter-preview {
+  border: 1px solid var(--adm-line);
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.adm-preview-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--adm-bg);
+  border-bottom: 1px solid var(--adm-line);
+}
+
+/* El asunto es lo primero que lee el suscriptor: que no se corte a medias. */
+.adm-preview-head strong {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adm-newsletter-preview iframe {
+  display: block;
+  width: 100%;
+  height: 560px;
+  border: 0;
+  background: #fff;
+}
+
+/* Confirmación de envío en línea: vive dentro de la tarjeta, exige un
+   segundo clic y lista los avisos de la validación antes de mandar. */
+.adm-confirm {
+  border: 2px solid var(--adm-accent);
+  background: #fff8f2;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.adm-confirm p { margin: 0 0 10px; }
+
+.adm-confirm-warn-title {
+  color: #a11f18;
+  font-weight: 700;
+}
+
+.adm-confirm-warn {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  color: #a11f18;
+}
+
+.adm-confirm-warn li { margin-bottom: 6px; }
+
+/* Lista de errores de validación dentro de la caja .adm-err */
+.adm-err ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
 /* Tablas */
 .adm-table-wrap { overflow-x: auto; }
 

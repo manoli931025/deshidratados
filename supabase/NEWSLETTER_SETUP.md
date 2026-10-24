@@ -203,8 +203,30 @@ es la carpeta de destino la que no es ideal.
 ### Desde el panel
 
 1. `/admin` → **Configuración** → sección **Boletín**
-2. Edita asunto y HTML
-3. **"Enviar boletín a todos los suscriptores"**
+2. Edita asunto y HTML. La **vista previa de la derecha** muestra, en vivo,
+   lo que verá el suscriptor (misma plantilla, mismo ancho de 600px).
+3. **"Guardar borrador"** si solo quieres conservar los cambios:
+   **no envía nada nunca**, se limita a guardar en `settings`.
+4. **"Enviar boletín a N suscriptores"** no envía directamente: primero
+   valida el HTML y abre una **confirmación en línea** con el recuento de
+   destinatarios y cualquier aviso. Hay que pulsar de nuevo para mandarlo.
+
+**Qué bloquea el envío** (errores, no se puede continuar):
+
+- Asunto o contenido vacío, o contenido sin texto visible.
+
+**Qué solo avisa** (aparece en la confirmación, y tú decides):
+
+- Etiquetas sin cerrar — Gmail suele tragar el resto del contenido.
+- Falta el bloque `<style>` — llegará sin diseño.
+- Falta el enlace de baja — afecta a la reputación y a la normativa.
+- El contenido es mucho más corto que la última versión guardada —
+  el típico `Ctrl+A` accidental.
+
+Si algo sale mal, la sección **Historial de envíos** guarda los últimos
+boletines enviados y tiene un botón **"Restaurar"** que los carga de vuelta
+en el editor. También hay **"Restaurar plantilla original"** para volver a
+la plantilla de fábrica.
 
 Para probar sin listas, suscríbete tú primero desde el pie de la tienda.
 
