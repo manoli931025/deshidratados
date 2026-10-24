@@ -17,7 +17,7 @@ export default function Subscribers() {
       .limit(1000);
     if (error) {
       const msg = /does not exist|schema cache/i.test(error.message || '')
-        ? 'La tabla de suscriptores no existe todavía. Ejecuta supabase/upgrade-subscribers-settings.sql en Supabase.'
+        ? 'La tabla de suscriptores no existe todavía. Ejecuta supabase/upgrade-2026-10-24.sql en Supabase.'
         : error.message;
       setErr(msg);
       return;

@@ -25,14 +25,6 @@ export default function Reviews() {
 
   useEffect(() => { load(); }, []);
 
-  const setStatus = async (r, status) => {
-    setBusy(true);
-    const { error } = await supabase.from('reviews').update({ status }).eq('id', r.id);
-    setBusy(false);
-    if (error) { setErr(error.message); return; }
-    load();
-  };
-
   const remove = async (r) => {
     if (!window.confirm('¿Eliminar esta reseña?')) return;
     setBusy(true);
@@ -71,7 +63,7 @@ export default function Reviews() {
       <header className="adm-head">
         <div>
           <h2>Reseñas</h2>
-          <p>{reviews.filter(r => r.status === 'pending').length} pendiente{reviews.filter(r => r.status === 'pending').length !== 1 ? 's' : ''} de revisar.</p>
+          <p>{reviews.length} reseña{reviews.length !== 1 ? 's' : ''} en total.</p>
         </div>
         <button className="adm-btn ghost" onClick={load}>Actualizar</button>
       </header>
@@ -84,15 +76,12 @@ export default function Reviews() {
           placeholder="🔍 Buscar por autor, comentario o producto…"
           aria-label="Buscar reseñas"
         />
-        {FILTERS.map(f => (
-          <button
-            key={f}
-            className={'adm-chip' + (filter === f ? ' on' : '')}
-            onClick={() => setFilter(f)}
-          >
-            {f === 'all' ? `Todas (${counts.all})` : `${STATUS_LABEL[f]} (${counts[f] || 0})`}
-          </button>
-        ))}
+        <button
+          className={'adm-chip' + (filter === 'all' ? ' on' : '')}
+          onClick={() => setFilter('all')}
+        >
+          Todas ({counts.all})
+        </button>
       </div>
       {reviews.length === 0 && !err && <p className="adm-muted">Aún no hay reseñas.</p>}
       {reviews.length > 0 && shown.length === 0 && <p className="adm-muted">No se encontraron reseñas con ese filtro.</p>}
@@ -111,12 +100,6 @@ export default function Reviews() {
             </div>
             <p style={{ margin: '0 0 10px' }}>{r.comment}</p>
             <div className="adm-order-foot">
-              {r.status !== 'approved' && (
-                <button className="adm-linkbtn" onClick={() => setStatus(r, 'approved')} disabled={busy}>Aprobar</button>
-              )}
-              {r.status !== 'rejected' && (
-                <button className="adm-linkbtn" onClick={() => setStatus(r, 'rejected')} disabled={busy}>Rechazar</button>
-              )}
               <button className="adm-linkbtn danger" onClick={() => remove(r)} disabled={busy}>Eliminar</button>
             </div>
           </div>

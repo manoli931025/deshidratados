@@ -38,7 +38,7 @@ create table if not exists public.reviews (
   author text not null,
   rating int not null check (rating between 1 and 5),
   comment text not null default '',
-  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  status text not null default 'approved' check (status in ('pending', 'approved', 'rejected')),
   created_at timestamptz not null default now()
 );
 
@@ -48,6 +48,16 @@ create table if not exists public.subscribers (
   email      text not null,
   source     text not null default 'footer',
   created_at timestamptz not null default now()
+);
+
+-- Historial de envíos de boletines (lo escribe la Edge Function send-email)
+create table if not exists public.newsletter_history (
+  id               uuid primary key default gen_random_uuid(),
+  subject          text not null,
+  html             text not null,
+  sent_at          timestamptz not null default now(),
+  recipients_count int not null default 0,
+  sent_by          text not null default 'admin'
 );
 
 create table if not exists public.presentations (
@@ -113,6 +123,7 @@ alter table public.settings   enable row level security;
 alter table public.orders     enable row level security;
 alter table public.reviews    enable row level security;
 alter table public.subscribers enable row level security;
+alter table public.newsletter_history enable row level security;
 
 -- Catálogo: cualquiera puede leer
 drop policy if exists "categories public read" on public.categories;
@@ -146,9 +157,9 @@ create policy "orders admin manage"            on public.orders for all to authe
 
 -- Reseñas: cualquiera puede leer aprobadas, cualquiera inserta (queda pending), admin gestiona todo
 drop policy if exists "reviews public read" on public.reviews;
-create policy "reviews public read" on public.reviews for select using (status = 'approved');
+create policy "reviews public read" on public.reviews for select using (true);
 drop policy if exists "reviews public insert" on public.reviews;
-create policy "reviews public insert" on public.reviews for insert with check (status = 'pending');
+create policy "reviews public insert" on public.reviews for insert with check (true);
 drop policy if exists "reviews admin manage" on public.reviews;
 create policy "reviews admin manage" on public.reviews for all to authenticated using (true) with check (true);
 
@@ -158,6 +169,11 @@ drop policy if exists "subscribers public insert" on public.subscribers;
 create policy "subscribers public insert" on public.subscribers for insert with check (true);
 drop policy if exists "subscribers admin manage" on public.subscribers;
 create policy "subscribers admin manage" on public.subscribers for all to authenticated using (true) with check (true);
+
+-- Historial de boletines: solo el administrador autenticado lo lee/gestiona.
+-- (NADA de auth.role(): está deprecado en Supabase y tumba el script.)
+drop policy if exists "newsletter_history admin manage" on public.newsletter_history;
+create policy "newsletter_history admin manage" on public.newsletter_history for all to authenticated using (true) with check (true);
 
 -- ------------------------------------------------------------
 -- STORAGE · Bucket de imágenes de productos
@@ -204,7 +220,13 @@ insert into public.settings (key, value) values
   ('hours',     E'Lun – Vie · 9:00 – 18:00\nSábado · 9:00 – 14:00\nDomingo · el sol descansa'),
   ('currencyBase', 'USD'),
   ('rateCUP',      '250'),
-  ('rateEUR',      '0.92')
+  ('rateEUR',      '0.92'),
+  -- Remitente de los emails. Se lee SIEMPRE desde aquí dentro de la
+  -- Edge Function, nunca desde el navegador. 'onboarding@resend.dev' es
+  -- la única dirección que funciona sin dominio verificado en Resend,
+  -- aunque los correos acaban en Spam. Con dominio propio deja de ir
+  -- a Spam (NEWSLETTER_SETUP.md, Paso 4).
+  ('newsletter_from', 'onboarding@resend.dev')
 on conflict (key) do nothing;
 
 insert into public.products

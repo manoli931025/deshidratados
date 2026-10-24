@@ -41,13 +41,20 @@ Tienda en línea de frutas y verduras deshidratadas hecha con **React (Create Re
 
 1. Regístrate en <https://supabase.com> y crea un proyecto nuevo.
 2. Ve a **SQL Editor → New query**, pega el contenido de [`supabase/schema.sql`](supabase/schema.sql) y ejecútalo (**Run**).
-   - Esto crea las tablas (`categories`, `products`, `presentations`, `variants`, `reviews`, `subscribers`, `orders`, `settings`), activa Row Level Security, crea el bucket de imágenes `product-images` e inserta el catálogo de demostración.
+   - Esto crea las tablas (`categories`, `products`, `presentations`, `variants`, `reviews`, `subscribers`, `newsletter_history`, `orders`, `settings`), activa Row Level Security, crea el bucket de imágenes `product-images` e inserta el catálogo de demostración.
 3. Crear el usuario administrador del panel: **Authentication → Users → Add user** (email + contraseña).
 
-> **Base ya existente:** si el proyecto Supabase es anterior a esta versión, ejecuta además
-> [`supabase/upgrade-subscribers-settings.sql`](supabase/upgrade-subscribers-settings.sql)
-> (agrega la tabla de suscriptores, las claves del pie de página y las de multi-moneda).
-> Todos los archivos `supabase/upgrade-*.sql` son idempotentes: puedes correrlos más de una vez y **no pisan** los valores que ya hayas guardado.
+> **Base ya existente:** si la base de datos es anterior a esta versión, ejecuta en su lugar
+> [`supabase/upgrade-2026-10-24.sql`](supabase/upgrade-2026-10-24.sql).
+> Es idempotente (puede correrse más de una vez), **no destructivo** y **no pisa** los
+> valores que ya hayas guardado desde el panel.
+>
+> Solo hay dos ficheros SQL:
+>
+> | Fichero | Cuándo |
+> |---|---|
+> | `schema.sql` | Base **nueva**: crea todo e inserta el catálogo |
+> | `upgrade-2026-10-24.sql` | Base **existente**: la lleva al estado actual |
 
 ### 2. Configurar la tienda
 
@@ -77,7 +84,21 @@ npm start
 
 3. Abre <http://localhost:3000> para ver la tienda y <http://localhost:3000/#/admin> para el panel (inicia sesión con el usuario que creaste).
 
-### 3. Publicar en GitHub Pages (deploy automático)
+### 3. Activar los correos (boletín y bienvenida)
+
+Los correos salen de una Edge Function de Supabase que llama a [Resend](https://resend.com).
+La guía completa está en [`supabase/NEWSLETTER_SETUP.md`](supabase/NEWSLETTER_SETUP.md)
+y solo necesita el dashboard, sin instalar la CLI:
+
+1. Guardar `RESEND_API_KEY` en **Edge Functions → Secrets**.
+2. Desplegar la función `send-email` (**Edge Functions → Deploy a new function**, nombre `send-email`).
+3. Rellenar *Email remitente del boletín* en el panel → **Configuración**.
+
+> Sin un dominio propio verificado en Resend, el remitente tiene que ser
+> `onboarding@resend.dev` (el de pruebas): los correos **sí llegan**, pero a la
+> carpeta de Spam. Con dominio propio dejan de ir a Spam.
+
+### 4. Publicar en GitHub Pages (deploy automático)
 
 1. Sube los cambios a la rama `main` del repositorio (`git push`).
 2. En el repositorio de GitHub: **Settings → Secrets and variables → Actions**, agrega los secrets:

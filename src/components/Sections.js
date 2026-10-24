@@ -4,6 +4,7 @@ import Reveal from './Reveal';
 import { useShop } from '../data/shop';
 import { LEGAL, LEGAL_ORDER } from '../data/legalContent';
 import { supabase, configured } from '../data/supabase';
+import { sendWelcomeEmail } from '../services/newsletter';
 
 const STEPS = [
   { n: '01', t: 'Cosecha', d: 'Compramos fruta y verdura de temporada directo a productores locales, en su punto exacto de maduración.' },
@@ -55,8 +56,9 @@ export function Testimonials() {
 
   useEffect(() => {
     if (!configured || !supabase) return;
+    // Ya no se filtra por 'approved' — todas las reseñas se muestran automáticamente.
+    // El admin solo puede eliminarlas.
     supabase.from('reviews').select('*, products(name)')
-      .eq('status', 'approved')
       .order('created_at', { ascending: false })
       .limit(6)
       .then(({ data }) => { if (data && data.length) setReviews(data); });
@@ -71,14 +73,13 @@ export function Testimonials() {
       author: form.author.trim(),
       comment: form.comment.trim(),
       rating: Number(form.rating),
-      product_id: form.product_id || null,
-      status: 'pending'
+      product_id: form.product_id || null
     });
     setSending(false);
     if (error) {
       console.error('Error al enviar reseña:', error);
       const msg = /does not exist|schema cache/i.test(error.message || '')
-        ? 'Las reseñas aún no están habilitadas. Ejecuta el archivo supabase/upgrade-reviews-gallery.sql en Supabase.'
+        ? 'Las reseñas aún no están habilitadas. Ejecuta el archivo supabase/upgrade-2026-10-24.sql en Supabase.'
         : `No se pudo enviar. (${error.message || 'Error desconocido'})`;
       setErr(msg);
       return;
@@ -203,18 +204,31 @@ export function Newsletter() {
     // Sin Supabase (modo demo) solo confirmamos en pantalla, como antes.
     if (!configured || !supabase) { setDone(true); return; }
     setBusy(true);
-    const { error } = await supabase.from('subscribers')
-      .insert({ email: email.trim().toLowerCase() });
+
+    // 1. Guardar el suscriptor
+    const { error: subError } = await supabase.from('subscribers').insert({
+      email: email.trim().toLowerCase()
+    });
+
+    // 2. Enviar email de bienvenida (si el suscriptor se guardó correctamente)
+    if (!subError) {
+      try {
+        await sendWelcomeEmail(email.trim().toLowerCase());
+      } catch (e) {
+        console.warn('[newsletter] Error al enviar email de bienvenida (no se descarta el suscriptor):', e);
+      }
+    }
+
     setBusy(false);
-    if (error) {
+    if (subError) {
       // 23505 = email ya registrado → mismo mensaje de éxito, sin asustar al usuario.
-      if (error.code === '23505' || /duplicate|unique/i.test(error.message || '')) {
+      if (subError.code === '23505' || /duplicate|unique/i.test(subError.message || '')) {
         setDone(true);
         return;
       }
-      console.error('Error al suscribir:', error);
-      const msg = /does not exist|schema cache/i.test(error.message || '')
-        ? 'El boletín aún no está habilitado. Ejecuta el archivo supabase/upgrade-subscribers-settings.sql en Supabase.'
+      console.error('Error al suscribir:', subError);
+      const msg = /does not exist|schema cache/i.test(subError.message || '')
+        ? 'El boletín aún no está habilitado. Ejecuta el archivo supabase/upgrade-2026-10-24.sql en Supabase.'
         : 'No se pudo registrar. Intenta de nuevo en unos segundos.';
       setErr(msg);
       return;
