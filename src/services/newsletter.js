@@ -37,16 +37,52 @@ async function callEdgeFunction(payload) {
     'Authorization': `Bearer ${anonKey || ''}`,
   };
 
-  const res = await fetch(EDGE_URL, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(payload),
-  });
+  let res;
+  try {
+    res = await fetch(EDGE_URL, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    });
+  } catch (networkErr) {
+    // "Failed to fetch" no explica nada. La causa habitual es una URL mal
+    // escrita en .env.local (un dominio que ni resuelve), así que lo
+    // decimos explícitamente: es el error que más veces ha llegado sin
+    // indicar por dónde tirar.
+    console.error('[newsletter] Fallo de red llamando a', EDGE_URL, networkErr);
+    throw new Error(
+      'No se pudo conectar con el servidor de correo.\n' +
+      `Se ha intentado llegar a: ${EDGE_URL}\n` +
+      'Casi siempre es que la URL de Supabase está mal en .env.local. ' +
+      'Corrígela y reinicia "npm start": las variables de entorno NO se recargan solas.'
+    );
+  }
 
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    const msg = data.error || `Error ${res.status}`;
+    // Cada status habitual se traduce a la acción concreta que hay que
+    // hacer, en vez de devolver el código crudo.
+    const detail = data.error || data.message || '';
+    let msg;
+
+    if (res.status === 404) {
+      msg =
+        'La función de correo "send-email" no está desplegada en Supabase.\n' +
+        'Ve a Supabase → Edge Functions → Deploy a new function → Via Editor, ' +
+        'con el nombre EXACTO "send-email" (con guion), y pega el contenido de ' +
+        'supabase/functions/send-email/index.ts. Ver NEWSLETTER_SETUP.md, Paso 3.' +
+        (detail ? `\nDetalle: ${detail}` : '');
+    } else if (res.status === 401 || res.status === 403) {
+      msg =
+        'Supabase ha rechazado las credenciales de acceso.\n' +
+        'Comprueba REACT_APP_SUPABASE_ANON_KEY en .env.local y reinicia "npm start".' +
+        (detail ? `\nDetalle: ${detail}` : '');
+    } else {
+      msg = detail || `El servidor de correo respondió con error ${res.status}.`;
+    }
+
+    console.error(`[newsletter] HTTP ${res.status} desde ${EDGE_URL}:`, data);
     throw new Error(msg);
   }
 

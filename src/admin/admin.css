@@ -662,6 +662,92 @@
   margin-bottom: 14px;
 }
 
+/* Carteles de aviso de formulario.
+   El componente hace scroll hasta el cartel en cuanto aparece, porque el
+   error se produce al pulsar un botón que suele estar al final de un
+   formulario largo y arriba no se veía nada. */
+.adm-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid;
+  border-left-width: 5px;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 14px;
+  animation: adm-notice-in .22s ease-out;
+}
+
+.adm-notice.is-error {
+  background: #ffe1df;
+  color: #a11f18;
+  border-color: #ffc9c4;
+  border-left-color: #b3261e;
+}
+
+.adm-notice.is-ok {
+  background: #dcf5e2;
+  color: #1d7a34;
+  border-color: #bfe8cb;
+  border-left-color: #1d7a34;
+}
+
+.adm-notice.is-info {
+  background: var(--adm-bg);
+  color: var(--adm-ink);
+  border-color: var(--adm-line);
+  border-left-color: var(--adm-accent);
+}
+
+.adm-notice-icon {
+  flex: none;
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.adm-notice-body {
+  flex: 1;
+  min-width: 0;
+  /* Muchos mensajes llevan saltos de línea: se respetan sin usar <pre>. */
+  white-space: pre-line;
+}
+
+.adm-notice-body ul {
+  white-space: normal;
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.adm-notice-title {
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.adm-notice-close {
+  flex: none;
+  background: none;
+  border: 0;
+  color: inherit;
+  opacity: .6;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.adm-notice-close:hover { opacity: 1; }
+
+@keyframes adm-notice-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-notice { animation: none; }
+}
+
 .adm-loading {
   padding: 60px;
   text-align: center;

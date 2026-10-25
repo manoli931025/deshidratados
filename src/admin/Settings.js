@@ -4,6 +4,7 @@ import { supabase } from '../data/supabase';
 import { SHOP } from '../data/config';
 import { LEGAL } from '../data/legalContent';
 import { sendNewsletter, DEFAULT_SUBJECT, DEFAULT_HTML } from '../services/newsletter';
+import Notice from './Notice';
 
 const FIELDS = [
   { key: 'shopName', label: 'Nombre de la tienda', type: 'text', help: 'Aparece en el logo y el pie de página.' },
@@ -428,8 +429,6 @@ export default function Settings() {
       <header className="adm-head">
         <div><h2>Configuración</h2><p>Datos generales que usa la tienda y el pie de página.</p></div>
       </header>
-      {err && <p className="adm-err">{err}</p>}
-      {ok && <p className="adm-ok">{ok}</p>}
       <form className="adm-card adm-form" onSubmit={submit}>
         {FIELDS.map(f => (
           <label key={f.key}>
@@ -457,6 +456,10 @@ export default function Settings() {
             <span className="adm-muted small">{f.help}</span>
           </label>
         ))}
+        <Notice kind="error" title="No se ha podido guardar la configuración." onDismiss={() => setErr('')}>
+          {err}
+        </Notice>
+        <Notice kind="ok" onDismiss={() => setOk('')}>{ok}</Notice>
         <button className="adm-btn" type="submit" disabled={busy}>
           {busy ? 'Guardando…' : 'Guardar cambios'}
         </button>
@@ -468,8 +471,6 @@ export default function Settings() {
           <p>Páginas enlazadas en el pie. Puedes reescribirlas aquí sin tocar código.</p>
         </div>
       </header>
-      {legalErr && <p className="adm-err">{legalErr}</p>}
-      {legalOk && <p className="adm-ok">{legalOk}</p>}
       <form className="adm-card adm-form" onSubmit={submitLegal}>
         <p className="adm-muted small" style={{ marginTop: 0 }}>
           Formato permitido: <code>#</code> y <code>##</code> para títulos, <code>**negritas**</code>,
@@ -493,6 +494,10 @@ export default function Settings() {
             </span>
           </label>
         ))}
+        <Notice kind="error" title="No se han podido guardar los documentos." onDismiss={() => setLegalErr('')}>
+          {legalErr}
+        </Notice>
+        <Notice kind="ok" onDismiss={() => setLegalOk('')}>{legalOk}</Notice>
         <button className="adm-btn" type="submit" disabled={legalBusy}>
           {legalBusy ? 'Guardando…' : 'Guardar documentos'}
         </button>
@@ -504,9 +509,6 @@ export default function Settings() {
           <p>Edita el contenido y revísalo en la vista previa. «Guardar borrador» nunca envía nada: el envío siempre pasa por una confirmación.</p>
         </div>
       </header>
-      {newsletterErr && <p className="adm-err">{newsletterErr}</p>}
-      {newsletterOk && <p className="adm-ok">{newsletterOk}</p>}
-      {newsletterBusy && <p className="adm-muted">Guardando contenido y enviando…</p>}
       <form className="adm-card adm-form" onSubmit={startSend}>
         {NEWSLETTER_FIELDS.filter(f => f.type !== 'textarea').map(f => (
           <label key={f.key}>
@@ -561,14 +563,20 @@ export default function Settings() {
           </div>
         </div>
 
-        {validationErrors.length > 0 && (
-          <div className="adm-err">
-            <strong>No se puede enviar todavía:</strong>
+        <Notice kind="error" title="No se ha podido completar." onDismiss={() => setNewsletterErr('')}>
+          {newsletterErr}
+        </Notice>
+        <Notice kind="ok" onDismiss={() => setNewsletterOk('')}>{newsletterOk}</Notice>
+        <Notice kind="info" title="Trabajando…">
+          {newsletterBusy ? 'Guardando contenido y enviando. No cierres esta ventana.' : ''}
+        </Notice>
+        <Notice kind="error" title="No se puede enviar todavía:">
+          {validationErrors.length > 0 && (
             <ul>
               {validationErrors.map(m => <li key={m}>{m}</li>)}
             </ul>
-          </div>
-        )}
+          )}
+        </Notice>
 
         {confirming ? (
           <div className="adm-confirm">
