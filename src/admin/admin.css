@@ -184,6 +184,9 @@
 
 .adm-linkbtn.danger { color: #b3261e; }
 .adm-linkbtn:disabled { opacity: .5; }
+/* Acciones en la celda del historial de boletines: Restaurar + Borrar.
+   Los .adm-linkbtn no llevan margen, así que sin esto se pegan. */
+.adm-hist-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 .adm-linkbtn.wa-confirm {
   background: #128c7e;
   color: #fff;

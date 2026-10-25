@@ -201,6 +201,8 @@ export default function Settings() {
   const [validationErrors, setValidationErrors] = useState([]);
   const [warnings, setWarnings] = useState([]);
   const [history, setHistory] = useState([]);
+  const [historyErr, setHistoryErr] = useState('');
+  const [historyBusy, setHistoryBusy] = useState(false);
   // La vista previa va con debounce: reparsear el HTML completo en cada
   // pulsación del textarea es un gasto innecesario.
   const [previewHtml, setPreviewHtml] = useState(NEWSLETTER_DEFAULTS.newsletter_html || '');
@@ -422,6 +424,37 @@ export default function Settings() {
     setConfirming(false);
     setNewsletterOk('Contenido cargado en el editor. Revísalo antes de guardar o enviar.');
     document.getElementById('newsletter-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  // ------------------------------------------------------------
+  // Borrado del historial. Solo quita filas de newsletter_history:
+  // ni toca el borrador del editor ni reenvía nada.
+  // ------------------------------------------------------------
+
+  /** Borra un envío concreto del historial. */
+  const deleteHistoryItem = async (item) => {
+    if (!window.confirm(`¿Eliminar del historial el envío "${item.subject}"?`)) return;
+    setHistoryErr('');
+    setHistoryBusy(true);
+    const { error } = await supabase.from('newsletter_history').delete().eq('id', item.id);
+    setHistoryBusy(false);
+    if (error) { setHistoryErr(`No se pudo borrar: ${error.message}`); return; }
+    // Releemos en vez de filtrar en local: si el borrado no afecta a ninguna
+    // fila (p. ej. RLS), la tabla no debe quedar falsamente vacía.
+    loadHistory();
+  };
+
+  /** Vacia el historial entero (borra todas las filas, no solo las 20 visibles). */
+  const clearHistory = async () => {
+    // Sin cifra en el mensaje: la tabla solo muestra 20 filas como máximo y
+    // el borrado se lleva todas, contadas o no.
+    if (!window.confirm('¿Borrar todo el historial de envíos? No se puede deshacer.')) return;
+    setHistoryErr('');
+    setHistoryBusy(true);
+    const { error } = await supabase.from('newsletter_history').delete();
+    setHistoryBusy(false);
+    if (error) { setHistoryErr(`No se pudo borrar el historial: ${error.message}`); return; }
+    loadHistory();
   };
 
   return (
@@ -648,7 +681,19 @@ export default function Settings() {
           <h2>Historial de envíos</h2>
           <p>Últimos boletines enviados. Sirve para recuperar el contenido si algo salió mal.</p>
         </div>
+        {history.length > 0 && (
+          <div className="adm-head-actions">
+            <button type="button" className="adm-linkbtn danger" onClick={clearHistory} disabled={historyBusy}>
+              Borrar todo
+            </button>
+          </div>
+        )}
       </header>
+      {historyErr && (
+        <Notice kind="error" title="No se ha podido borrar." onDismiss={() => setHistoryErr('')}>
+          {historyErr}
+        </Notice>
+      )}
       {history.length === 0 ? (
         <p className="adm-status-hint">Todavía no has enviado ningún boletín desde el panel.</p>
       ) : (
@@ -669,9 +714,19 @@ export default function Settings() {
                   <td>{formatSentAt(h.sent_at)}</td>
                   <td>{h.recipients_count}</td>
                   <td>
-                    <button type="button" className="adm-linkbtn" onClick={() => restoreFromHistory(h)}>
-                      Restaurar
-                    </button>
+                    <span className="adm-hist-actions">
+                      <button type="button" className="adm-linkbtn" onClick={() => restoreFromHistory(h)}>
+                        Restaurar
+                      </button>
+                      <button
+                        type="button"
+                        className="adm-linkbtn danger"
+                        onClick={() => deleteHistoryItem(h)}
+                        disabled={historyBusy}
+                      >
+                        Borrar
+                      </button>
+                    </span>
                   </td>
                 </tr>
               ))}
