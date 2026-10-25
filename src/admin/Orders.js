@@ -260,7 +260,6 @@ export default function Orders() {
                       ✆ Enviar WhatsApp
                     </button>
                   )}
-                  <button className="adm-linkbtn" onClick={() => openWa(o)} disabled={!o.phone}>WhatsApp</button>
                   <button className="adm-linkbtn danger" onClick={() => remove(o)} disabled={busy}>Eliminar</button>
                 </div>
                 {o.status === 'Confirmado' && !o.phone && (

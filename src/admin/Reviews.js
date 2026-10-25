@@ -8,7 +8,10 @@ const FILTERS = ['pending', 'approved', 'rejected', 'all'];
 
 export default function Reviews() {
   const [reviews, setReviews] = useState([]);
-  const [filter, setFilter] = useState('pending');
+  // 'all' como arranque: desde que las reseñas se publican solas no hay
+  // ninguna "pendiente", y arrancar en ese filtro enseñaba una lista vacía
+  // y obligaba a pulsar "Todas" para ver nada.
+  const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
