@@ -316,6 +316,25 @@ nav.main a:hover::after{transform:scaleX(1);transform-origin:left}
 .co-done p{font-size:.88rem;color:var(--ink2)}
 .co-done .co-warn{margin-top:.5rem;padding:.6rem .8rem;border:1.5px solid var(--gold);border-radius:9px;background:rgba(217,164,65,.14);color:var(--ink);font-size:.82rem;text-align:left}
 
+/* Alterna bloques del drawer (lista / formulario) sin desmontarlos: ver el
+   comentario de Cabecera de CartDrawer.js. display:none saca al elemento del
+   flex, así que no roba altura al resto. */
+.drawer .off{display:none}
+/* Paso 2 · barra de resumen bajo la cabecera. El flex-wrap es por si el total
+   es largo (4 cifras) en pantallas de 320px: en vez de desbordar
+   horizontalmente, salta a una línea. */
+.co-bar{display:flex;flex-wrap:wrap;align-items:center;gap:.85rem;padding:.85rem 1.4rem;background:var(--paper);border-bottom:2px solid var(--ink)}
+.co-back{border:1.5px solid var(--ink);background:transparent;border-radius:99px;padding:.35rem .85rem;font-size:.75rem;font-weight:600;color:var(--ink);cursor:pointer;transition:background .2s,color .2s}
+.co-back:hover{background:var(--ink);color:var(--bg)}
+.co-bar .count{font-family:var(--mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--ink2)}
+.co-bar .sum{margin-left:auto;font-family:var(--mono);font-weight:700;font-size:1.05rem;color:var(--terra-d)}
+/* Paso 2 · el formulario se queda con todo el alto restante del drawer.
+   Conserva el fondo --paper que tenía antes dentro de .drawer-foot: los
+   inputs (--card) apenas se distinguirían sobre --bg. */
+.checkout-pane{flex:1;overflow-y:auto;padding:1.3rem 1.4rem 1.7rem;background:var(--paper)}
+.checkout-pane .co-form{margin-top:0}
+.checkout-pane .co-done{margin-top:0}
+
 /* responsive */
 @media(max-width:1020px){
   .hero-grid{grid-template-columns:1fr;gap:3.5rem}
