@@ -45,14 +45,32 @@ async function callEdgeFunction(payload) {
       body: JSON.stringify(payload),
     });
   } catch (networkErr) {
-    // "Failed to fetch" no explica nada. La causa habitual es una URL mal
-    // escrita en .env.local (un dominio que ni resuelve), así que lo
-    // decimos explícitamente: es el error que más veces ha llegado sin
-    // indicar por dónde tirar.
+    // "Failed to fetch" no explica nada, y la causa no siempre es la misma.
+    // Si la URL es de Supabase y es correcta, lo normal es que la función
+    // no esté desplegada: mientras no exista, el preflight CORS responde
+    // 404, y el navegador exige 2xx en el preflight → network error →
+    // "Failed to fetch", sin llegar a leerse el 404 real.
     console.error('[newsletter] Fallo de red llamando a', EDGE_URL, networkErr);
+
+    const isSupabaseFn = /^https:\/\/[a-z0-9]+\.supabase\.co\/functions\/v1\//i.test(EDGE_URL);
+
+    if (isSupabaseFn) {
+      throw new Error(
+        'No se pudo conectar con la función de correo de Supabase.\n' +
+        `URL intentada: ${EDGE_URL}\n` +
+        'La URL es correcta, así que lo más probable es que la función ' +
+        '"send-email" AÚN NO ESTÉ DESPLEGADA. Mientras no exista, el ' +
+        'navegador recibe un 404 al pedir permisos (CORS) y lo traduce a ' +
+        '"Failed to fetch" sin más detalle.\n' +
+        'Desplégala en Supabase → Edge Functions → Deploy a new function → ' +
+        'Via Editor, con el nombre EXACTO "send-email" (con guion). ' +
+        'Ver NEWSLETTER_SETUP.md, Paso 3.'
+      );
+    }
+
     throw new Error(
       'No se pudo conectar con el servidor de correo.\n' +
-      `Se ha intentado llegar a: ${EDGE_URL}\n` +
+      `URL intentada: ${EDGE_URL}\n` +
       'Casi siempre es que la URL de Supabase está mal en .env.local. ' +
       'Corrígela y reinicia "npm start": las variables de entorno NO se recargan solas.'
     );
