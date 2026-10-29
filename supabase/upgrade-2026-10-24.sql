@@ -100,13 +100,11 @@ on conflict (key) do nothing;
 -- Se lee SIEMPRE desde aquí dentro de la Edge Function: el navegador no
 -- puede cambiarlo.
 --
--- 'onboarding@resend.dev' es la única dirección que funciona sin verificar
--- un dominio en Resend (comprobado empíricamente: cualquier otro remitente
--- devuelve 403 "domain is not verified"). Limitación: los correos van a
--- la carpeta de Spam del destinatario. Para salir de ahí hace falta
--- dominio propio (NEWSLETTER_SETUP.md, Paso 4).
+-- Debe ser una dirección VERIFICADA en Brevo (SMTP & API → Senders).
+-- Si el remitente cambia, ejecuta también upgrade-2026-10-29.sql o
+-- actualízalo desde el panel (NEWSLETTER_SETUP.md, Paso 4).
 insert into public.settings (key, value) values
-  ('newsletter_from', 'onboarding@resend.dev')
+  ('newsletter_from', 'solaria024@gmail.com')
 on conflict (key) do nothing;
 
 

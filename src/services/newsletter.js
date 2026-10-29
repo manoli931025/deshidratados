@@ -1,6 +1,6 @@
 // Servicio de envío de emails mediante Supabase Edge Function.
 //
-// La API key de Resend vive como secret en Supabase y NUNCA llega al
+// La API key de Brevo vive como secret en Supabase y NUNCA llega al
 // frontend: el navegador solo conoce la URL de la función y la anon key
 // pública (que es pública por diseño).
 //
@@ -11,7 +11,7 @@ const EDGE_URL = `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/send-email`
 
 /**
  * Llama a la Edge Function send-email de Supabase.
- * La API key de Resend vive como secret en Supabase:
+ * La API key de Brevo vive como secret en Supabase:
  * el navegador solo ve la URL de la función y la anon key pública.
  * @param {object} payload
  * @param {string[]} payload.to - Destinatarios

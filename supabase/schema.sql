@@ -222,11 +222,10 @@ insert into public.settings (key, value) values
   ('rateCUP',      '250'),
   ('rateEUR',      '0.92'),
   -- Remitente de los emails. Se lee SIEMPRE desde aquí dentro de la
-  -- Edge Function, nunca desde el navegador. 'onboarding@resend.dev' es
-  -- la única dirección que funciona sin dominio verificado en Resend,
-  -- aunque los correos acaban en Spam. Con dominio propio deja de ir
-  -- a Spam (NEWSLETTER_SETUP.md, Paso 4).
-  ('newsletter_from', 'onboarding@resend.dev')
+  -- Edge Function, nunca desde el navegador. Debe ser una dirección
+  -- VERIFICADA en Brevo (SMTP & API → Senders). Si cambias el remitente,
+  -- verifica la nueva dirección en Brevo antes de enviar (NEWSLETTER_SETUP.md).
+  ('newsletter_from', 'solaria024@gmail.com')
 on conflict (key) do nothing;
 
 insert into public.products

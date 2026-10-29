@@ -1,5 +1,5 @@
 // Supabase Edge Function: send-email
-// Proxy seguro para Resend. La API key nunca sale del servidor.
+// Proxy seguro para Brevo (ex-Sendinblue). La API key nunca sale del servidor.
 //
 // Uso:
 //   POST /functions/v1/send-email
@@ -12,8 +12,10 @@
 // nunca del cliente: así nadie puede suplantar el remitente.
 //
 // CONFIGURACIÓN (una sola vez, desde el dashboard):
-//   1. Edge Functions → Secrets → añadir RESEND_API_KEY
-//   2. Edge Functions → "Deploy a new function" → Via Editor → nombre: send-email
+//   1. Brevo → SMTP & API → Senders → verificar la dirección remitente
+//   2. Brevo → SMTP & API → API Keys → generar una clave
+//   3. Supabase → Edge Functions → Secrets → añadir BREVO_API_KEY
+//   4. Supabase → Edge Functions → "Deploy a new function" → nombre: send-email
 //
 // NUNCA pegues aquí la API key: este fichero va al repositorio.
 
@@ -29,9 +31,9 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// Límite por invocación: Resend acepta como máximo 50 destinatarios por
-// request, y así además no se agota el timeout de Supabase.
-// El frontend va troceando solo y sigue el progreso real del servidor.
+// Límite por invocación: Brevo acepta lotes, pero así no se agota el
+// timeout de Supabase. El frontend va troceando solo y sigue el progreso
+// real del servidor.
 const MAX_PER_CALL = 50;
 
 /** Error con mensaje ya redactado para el usuario final. */
@@ -43,11 +45,11 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-    if (!RESEND_API_KEY) {
+    const BREVO_API_KEY = Deno.env.get('BREVO_API_KEY');
+    if (!BREVO_API_KEY) {
       return json({
         error:
-          'Falta el secret RESEND_API_KEY. ' +
+          'Falta el secret BREVO_API_KEY. ' +
           'Añádelo en Supabase → Edge Functions → Secrets.',
       }, 500);
     }
@@ -104,26 +106,21 @@ Deno.serve(async (req: Request) => {
       return json({
         error:
           'Falta el "Email remitente del boletín". Ve a tu panel → Configuración ' +
-          'y rellénalo (para probar: onboarding@resend.dev).',
+          'y rellénalo (debe estar verificado en Brevo: SMTP & API → Senders).',
       }, 500);
     }
 
-    // Resend acepta nombre visible ("Solaria <onboarding@resend.dev>"):
-    // validamos la dirección pura, no el formato completo.
-    const bareFrom = (from.includes('<')
-      ? from.slice(from.indexOf('<') + 1, from.lastIndexOf('>'))
-      : from
-    ).trim();
-
-    if (!emailRe.test(bareFrom)) {
+    // Brevo separa nombre visible y dirección en el body
+    // ("Solaria <solaria024@gmail.com>" → {name, email}).
+    const sender = parseSender(from);
+    if (!emailRe.test(sender.email)) {
       return json({
         error: `El email remitente ("${from}") no tiene un formato de correo válido.`,
       }, 500);
     }
 
     // Si quien responde lo hace a la dirección de contacto de la tienda,
-    // los correos de los clientes llegan a un buzón real y no a una
-    // dirección de prueba que nadie lee.
+    // los correos de los clientes llegan a un buzón real.
     const contactEmail = (map.email || '').trim();
     const replyAddress = replyTo || (emailRe.test(contactEmail) ? contactEmail : undefined);
 
@@ -136,27 +133,31 @@ Deno.serve(async (req: Request) => {
 
     for (const recipient of batch) {
       try {
-        const res = await fetch('https://api.resend.com/emails', {
+        const payload: Record<string, unknown> = {
+          sender,
+          to: [{ email: recipient }], // uno a uno: nadie ve la lista de los demás
+          subject,
+          htmlContent: html,
+        };
+        if (replyAddress) {
+          payload.replyTo = { email: replyAddress };
+        }
+
+        const res = await fetch('https://api.brevo.com/v3/smtp/email', {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${RESEND_API_KEY}`,
+            'api-key': BREVO_API_KEY,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            from,
-            to: [recipient], // uno a uno: nadie ve la lista de los demás
-            reply_to: replyAddress,
-            subject,
-            html,
-          }),
+          body: JSON.stringify(payload),
         });
 
         if (res.ok) {
           sent++;
         } else {
           const errText = await res.text();
-          console.error(`[send-email] Resend ${res.status} con ${recipient}:`, errText);
-          errors.push({ email: recipient, error: explainResendError(res.status, errText) });
+          console.error(`[send-email] Brevo ${res.status} con ${recipient}:`, errText);
+          errors.push({ email: recipient, error: explainBrevoError(res.status, errText) });
         }
       } catch (err) {
         const detail = err instanceof Error ? err.message : 'error de red';
@@ -193,21 +194,61 @@ Deno.serve(async (req: Request) => {
 });
 
 /**
- * Traduce los códigos de Resend a algo accionable en castellano.
- * Devolver el JSON crudo de Resend no le sirve a nadie.
+ * Extrae nombre visible y dirección de un remitente tipo
+ * "Solaria · Deshidratados <solaria024@gmail.com>" o solo "solaria024@gmail.com".
  */
-function explainResendError(status: number, raw: string): string {
-  const hints: Record<number, string> = {
-    401: 'La API key de Resend no es válida o fue revocada. Revísala en Edge Functions → Secrets.',
-    403:
-      'Ese remitente no está verificado. Resend exige un dominio propio; ' +
-      'para probar usa onboarding@resend.dev (ver NEWSLETTER_SETUP.md, Paso 4).',
-    422: 'Revisa el remitente y los destinatarios.',
-    429: 'Límite de peticiones de Resend alcanzado. Espera un momento y reintenta.',
+function parseSender(from: string): { email: string; name?: string } {
+  const lt = from.indexOf('<');
+  const gt = from.lastIndexOf('>');
+
+  if (lt !== -1 && gt > lt) {
+    const email = from.slice(lt + 1, gt).trim();
+    const name = from.slice(0, lt).trim() || from.slice(gt + 1).trim();
+    // El nombre visible de Brevo admite como máximo 70 caracteres.
+    return name ? { email, name: name.slice(0, 70) } : { email };
+  }
+
+  return { email: from.trim() };
+}
+
+/**
+ * Traduce los códigos de Brevo a algo accionable en castellano.
+ * Brevo devuelve JSON {code, message}; aquí lo resumimos.
+ */
+function explainBrevoError(status: number, raw: string): string {
+  let code = '';
+  let message = '';
+  try {
+    const parsed = JSON.parse(raw);
+    code = parsed.code || '';
+    message = parsed.message || '';
+  } catch {
+    message = raw.slice(0, 200);
+  }
+
+  // Errores de cuenta/configuración (400 con código específico)
+  const codeHints: Record<string, string> = {
+    unauthorized: 'La API key de Brevo no es válida. Revísala en Edge Functions → Secrets.',
+    not_acceptable:
+      'Ese remitente no está verificado en Brevo. Ve a Brevo → SMTP & API → Senders ' +
+      'y verifica la dirección (te envía un código de confirmación a ese correo).',
+    account_under_validation:
+      'Tu cuenta de Brevo está en revisión (normal las primeras horas). ' +
+      'Completa la validación desde el dashboard de Brevo o espera unos minutos.',
+    not_enough_credits: 'Límite diario del plan gratuito de Brevo alcanzado. Inténtalo mañana.',
+    permission_denied: 'La API key no tiene permisos de envío. Genera una nueva en Brevo.',
+    '': 'Revisa el remitente y los destinatarios.',
   };
-  const hint = hints[status] || '';
-  const detail = raw.slice(0, 200);
-  return `Resend respondió ${status}. ${hint}${detail ? ` (${detail})` : ''}`.trim();
+
+  // Errores HTTP sin código (401, 429…)
+  const statusHints: Record<number, string> = {
+    401: 'La API key de Brevo no es válida o fue revocada. Revísala en Edge Functions → Secrets.',
+    429: 'Límite de peticiones de Brevo alcanzado. Espera un momento y reintenta.',
+  };
+
+  const hint = codeHints[code] || statusHints[status] || '';
+  const detail = message.slice(0, 200);
+  return `Brevo respondió ${status}${code ? ` (${code})` : ''}. ${hint}${detail ? ` (${detail})` : ''}`.trim();
 }
 
 /** Lee la clave de servicio, soportando ambos sistemas de claves. */

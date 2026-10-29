@@ -86,17 +86,18 @@ npm start
 
 ### 3. Activar los correos (boletín y bienvenida)
 
-Los correos salen de una Edge Function de Supabase que llama a [Resend](https://resend.com).
+Los correos salen de una Edge Function de Supabase que llama a [Brevo](https://www.brevo.com) (plan gratuito, ~300 correos/día).
 La guía completa está en [`supabase/NEWSLETTER_SETUP.md`](supabase/NEWSLETTER_SETUP.md)
 y solo necesita el dashboard, sin instalar la CLI:
 
-1. Guardar `RESEND_API_KEY` en **Edge Functions → Secrets**.
-2. Desplegar la función `send-email` (**Edge Functions → Deploy a new function**, nombre `send-email`).
-3. Rellenar *Email remitente del boletín* en el panel → **Configuración**.
+1. Crear cuenta en Brevo y **verificar el remitente** (SMTP & API → Senders).
+2. Guardar `BREVO_API_KEY` en **Edge Functions → Secrets**.
+3. Ejecutar `supabase/upgrade-2026-10-29.sql` (fija el remitente) y desplegar la función `send-email` (**Edge Functions → Deploy a new function**, nombre `send-email`).
+4. Rellenar *Email remitente del boletín* en el panel → **Configuración**.
 
-> Sin un dominio propio verificado en Resend, el remitente tiene que ser
-> `onboarding@resend.dev` (el de pruebas): los correos **sí llegan**, pero a la
-> carpeta de Spam. Con dominio propio dejan de ir a Spam.
+> El remitente debe ser una dirección **verificada en Brevo** (p. ej.
+> `solaria024@gmail.com`). Brevo verifica una dirección de correo con un
+> código de confirmación, sin necesidad de dominio propio ni registros DNS.
 
 ### 4. Publicar en GitHub Pages (deploy automático)
 
