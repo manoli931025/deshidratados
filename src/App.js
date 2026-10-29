@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { HashRouter, Routes, Route, useLocation, useNavigationType } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
-import { ShopProvider } from './data/shop';
+import { ShopProvider, useShop } from './data/shop';
+import BootLoader from './components/BootLoader';
 import Header from './components/Header';
 import Hero, { Marquee } from './components/Hero';
 import Catalog from './components/Catalog';
@@ -71,17 +72,29 @@ function Store() {
   );
 }
 
+// La primera carga de la visita no revela la tienda hasta que estén los
+// datos y las imágenes principales del catálogo (o venza el tope de 4 s):
+// así nunca se ven placeholders ni parpadeos al entrar. Solo afecta a esa
+// primera carga; navegar por la tienda ya no vuelve a pasar por aquí.
+function BootGate({ children }) {
+  const { ready, progress } = useShop();
+  if (!ready) return <BootLoader loaded={progress.loaded} total={progress.total} />;
+  return children;
+}
+
 function App() {
   return (
     <HashRouter>
       <ScrollManager />
       <ShopProvider>
-        <CurrencyProvider>
-          <Routes>
-            <Route path="/admin/*" element={<AdminApp />} />
-            <Route path="*" element={<Store />} />
-          </Routes>
-        </CurrencyProvider>
+        <BootGate>
+          <CurrencyProvider>
+            <Routes>
+              <Route path="/admin/*" element={<AdminApp />} />
+              <Route path="*" element={<Store />} />
+            </Routes>
+          </CurrencyProvider>
+        </BootGate>
       </ShopProvider>
     </HashRouter>
   );

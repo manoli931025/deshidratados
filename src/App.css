@@ -85,6 +85,14 @@ nav.main a:hover::after{transform:scaleX(1);transform-origin:left}
 .polaroid figcaption{font-family:var(--mono);font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--ink2);padding-top:8px}
 .polaroid-sk{width:100%;aspect-ratio:var(--ar,4/5);background:linear-gradient(100deg,#f6f0e6 38%,#fffdf6 50%,#f6f0e6 62%);background-size:200% 100%;animation:skShimmer 1.5s linear infinite}
 @keyframes skShimmer{to{background-position:-200% 0}}
+/* Pantalla de carga inicial (BootLoader): tapa la tienda hasta que estén
+   los datos y las imágenes principales, o hasta el tope de 4 s. */
+.boot{position:fixed;inset:0;z-index:400;background:#f6f0e6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px}
+.boot-sun{animation:bootSpin 9s linear infinite}
+.boot-name{font-family:var(--mono);font-size:1.5rem;letter-spacing:.45em;text-indent:.45em;color:var(--ink);margin:0}
+.boot-sub{font-family:var(--mono);font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink2);margin:0}
+.boot-count{font-family:var(--mono);font-size:.72rem;color:var(--terracotta);margin:6px 0 0}
+@keyframes bootSpin{to{transform:rotate(360deg)}}
 @keyframes breathe{from{transform:scale(1)}to{transform:scale(1.1) translate(-1.5%,1.5%)}}
 .p1{width:55%;top:2%;right:0;--r:4deg;--ar:4/5;z-index:2}
 .p2{width:46%;bottom:8%;left:0;--r:-6deg;--ar:4/4.6;z-index:3}

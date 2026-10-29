@@ -5,6 +5,8 @@ import { SHOP } from './config';
 
 const ShopContext = createContext({
   loading: true,
+  ready: false,
+  progress: { loaded: 0, total: 0 },
   products: seedProducts,
   categories: seedCategories,
   shop: SHOP
@@ -73,14 +75,49 @@ async function loadFromSupabase() {
   };
 }
 
+// Tope (ms) de la pantalla de carga: aunque falte algo por descargar, a los
+// 4 s se revela la tienda y lo que falte entra después tras el placeholder
+// de marca. Evita dejar al visitante esperando sin límite en conexiones lentas.
+const BOOT_TIMEOUT_MS = 4000;
+
 export function ShopProvider({ children }) {
   const [state, setState] = useState({ loading: true, products: seedProducts, categories: seedCategories, shop: SHOP });
+  // "ready" = revelar la tienda: datos resueltos + imágenes principales
+  // descargadas (o tope vencido). "progress" alimenta el contador del BootLoader.
+  const [ready, setReady] = useState(false);
+  const [progress, setProgress] = useState({ loaded: 0, total: 0 });
 
   useEffect(() => {
     let alive = true;
+
+    // Precarga la imagen principal de cada producto. Se da por "listo"
+    // cuando todas terminan de descargar — onload y onerror cuentan igual,
+    // porque una imagen rota nunca va a llegar y esperarla eternamente
+    // solo bloquearía la página.
+    const warm = prods => {
+      const urls = [...new Set((prods || []).map(p => p.image).filter(Boolean))];
+      if (!urls.length) { setReady(true); return; }
+      let loaded = 0;
+      urls.forEach(url => {
+        const img = new Image();
+        img.onload = img.onerror = () => {
+          if (!alive) return;
+          loaded += 1;
+          setProgress({ loaded, total: urls.length });
+          if (loaded >= urls.length) setReady(true);
+        };
+        img.src = url;
+      });
+    };
+
+    // Red de seguridad del tope: revela aunque algo se atasque
+    // (una espera infinita dejaría al visitante en pantalla en blanco).
+    const revealTimer = setTimeout(() => { if (alive) setReady(true); }, BOOT_TIMEOUT_MS);
+
     if (!configured || !supabase) {
       setState({ loading: false, products: seedProducts, categories: seedCategories, shop: SHOP });
-      return;
+      warm(seedProducts);
+      return () => { alive = false; clearTimeout(revealTimer); };
     }
     loadFromSupabase()
       .then(data => {
@@ -92,14 +129,17 @@ export function ShopProvider({ children }) {
           categories: okProducts ? data.categories : seedCategories,
           shop: data.shop && data.shop.whatsapp ? data.shop : SHOP
         });
+        warm(okProducts ? data.products : seedProducts);
       })
       .catch(() => {
-        if (alive) setState({ loading: false, products: seedProducts, categories: seedCategories, shop: SHOP });
+        if (!alive) return;
+        setState({ loading: false, products: seedProducts, categories: seedCategories, shop: SHOP });
+        warm(seedProducts);
       });
-    return () => { alive = false; };
+    return () => { alive = false; clearTimeout(revealTimer); };
   }, []);
 
-  return <ShopContext.Provider value={state}>{children}</ShopContext.Provider>;
+  return <ShopContext.Provider value={{ ...state, ready, progress }}>{children}</ShopContext.Provider>;
 }
 
 // Registra un pedido en la base. Devuelve { ok, error }.
