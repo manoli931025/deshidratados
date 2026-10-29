@@ -19,8 +19,11 @@ Frontend (React)
 Supabase Edge Function  send-email
     ↓  1. Lee el remitente de la tabla `settings`
     ↓  2. Valida destinatarios y trocea en lotes de 50
-    ↓  3. Llama a Brevo con la API key (secret, nunca en el navegador)
+    ↓  3. Sustituye {{UNSUBSCRIBE_URL}} por un enlace firmado por destinatario
+    ↓  4. Llama a Brevo con la API key (secret, nunca en el navegador)
 Brevo  →  SMTP  →  bandeja del destinatario
+                          ↓  el suscriptor pulsa "Darse de baja"
+Supabase Edge Function  unsubscribe  →  borra la fila de `subscribers`
 ```
 
 **El remitente (`newsletter_from`) se lee SIEMPRE desde la base de datos**
@@ -45,7 +48,7 @@ No hay ninguna API key en el JavaScript.
 | 0 | Crear cuenta gratis en Brevo y verificar el remitente | [brevo.com](https://www.brevo.com) |
 | 1 | Ejecutar la migración SQL | Supabase → SQL Editor |
 | 2 | Guardar la API key de Brevo | Supabase → Edge Functions → Secrets |
-| 3 | Desplegar la Edge Function `send-email` | Supabase → Edge Functions |
+| 3 | Desplegar las Edge Functions `send-email` y `unsubscribe` | Supabase → Edge Functions |
 | 4 | Configurar el remitente | Tu tienda → `/admin` |
 | 5 | Probar | El propio panel |
 
@@ -117,7 +120,14 @@ Son 100 % idempotentes (puede ejecutarse muchas veces) y **no destructivos**.
 
 ---
 
-## Paso 3: Desplegar la Edge Function
+## Paso 3: Desplegar las Edge Functions
+
+Hay **dos** funciones, y se desplegan igual. Repite los pasos con cada una:
+
+| Función | Contenido | Verify JWT |
+|---|---|---|
+| `send-email` | `supabase/functions/send-email/index.ts` | ✅ Activado (por defecto) |
+| `unsubscribe` | `supabase/functions/unsubscribe/index.ts` | ❌ **Desactivado** (ver aviso) |
 
 **Opción A · Desde el dashboard (recomendada, sin instalar nada)**
 
@@ -127,16 +137,36 @@ Son 100 % idempotentes (puede ejecutarse muchas veces) y **no destructivos**.
 4. Borra la plantilla y pega **todo** el contenido de
    `supabase/functions/send-email/index.ts`
 5. **"Deploy function"** al pie del editor
+6. Repite 2–5 con `unsubscribe` y
+   `supabase/functions/unsubscribe/index.ts`
 
-Quedará vivo en:
+Quedarán vivas en:
 
 ```
 https://TU-PROYECTO.supabase.co/functions/v1/send-email
+https://TU-PROYECTO.supabase.co/functions/v1/unsubscribe
 ```
 
 > El editor del dashboard no tiene control de versiones. El código fuente de
 > verdad está en tu repo: si lo editas desde el dashboard, copia el cambio
-> de vuelta a `supabase/functions/send-email/index.ts`.
+> de vuelta al fichero correspondiente de `supabase/functions/`.
+
+### ⚠️ Verify JWT de `unsubscribe`
+
+La función `unsubscribe` **debe ir con "Verify JWT" desactivado**, porque
+quien hace clic en el enlace es el navegador del suscriptor, que no lleva
+la cabecera `Authorization` de Supabase: con el JWT activado, el enlace
+respondería `401` siempre.
+
+Cómo se desactiva (tras desplegarla):
+
+1. **Edge Functions** → `unsubscribe`
+2. Pestaña **Settings** (o el icono de engranaje)
+3. **Verify JWT** → desactivado → **Save**
+
+Con él desactivado no hay riesgo: la función solo borra filas cuando la
+firma HMAC del enlace es correcta (ver *Seguridad* más abajo).
+`send-email` **deja el JWT activado**, como hasta ahora.
 
 **Opción B · Con la CLI**
 
@@ -144,6 +174,7 @@ https://TU-PROYECTO.supabase.co/functions/v1/send-email
 supabase login
 supabase link --project-ref tu-project-ref
 supabase functions deploy send-email
+supabase functions deploy unsubscribe --no-verify-jwt
 ```
 
 ---
@@ -201,6 +232,55 @@ ser más caro y burocrático). Con él:
 
 ---
 
+## El enlace «Darse de baja»
+
+Las plantillas por defecto incluyen en el pie:
+
+```html
+<a href="{{UNSUBSCRIBE_URL}}">Darse de baja</a>
+```
+
+`{{UNSUBSCRIBE_URL}}` es un **marcador**, no una URL. Al enviar, la función
+`send-email` lo sustituye en cada correo por un enlace personalizado:
+
+```
+https://TU-PROYECTO.supabase.co/functions/v1/unsubscribe?e=roger@…&s=firma-hmac
+```
+
+El flujo del suscriptor:
+
+1. Pulsa «Darse de baja» → abre una **página de confirmación** con un botón.
+2. Pulse «Sí, darme de baja» → la función `unsubscribe` **borra su fila** de
+   `subscribers` y muestra «¡Listo!».
+3. Deja de recibir boletines en el siguiente envío.
+
+### ¿Por qué hay una confirmación y no borra directamente?
+
+Porque **Gmail y Outlook precargan los enlaces** de los correos (escáneres
+de seguridad). Si el enlace borrara al abrirse, esas personas quedarían
+dadas de baja sin haber pulsado nada. Solo un POST (el botón) borra.
+
+### Reglas para que funcione
+
+- **No borres el marcador** `{{UNSUBSCRIBE_URL}}` del HTML. La validación
+  del panel avisa si el texto de baja está pero el marcador falta.
+- La función `unsubscribe` debe estar **desplegada** y con
+  **Verify JWT desactivado** (Paso 3).
+- El historial guarda el HTML **con el marcador**, así que un boletín
+  restaurado sigue siendo válido.
+- No hace falta configurar ningún secret nuevo: la firma usa la clave de
+  servicio de Supabase, que la plataforma ya inyecta.
+
+### Probarlo
+
+1. Envía un boletín (o el correo de bienvenida) a tu correo.
+2. En el correo recibido, pulsa **«Darse de baja»** → debe abrirse la
+   página de confirmación con el botón.
+3. Pulsa **«Sí, darme de baja»** → sale la página de éxito.
+4. En `/admin` → el recuento de suscriptores baja al recargar la página.
+
+---
+
 ## Paso 5: Probar
 
 ### Desde el panel
@@ -223,6 +303,7 @@ ser más caro y burocrático). Con él:
 - Etiquetas sin cerrar — Gmail suele tragar el resto del contenido.
 - Falta el bloque `<style>` — llegará sin diseño.
 - Falta el enlace de baja — afecta a la reputación y a la normativa.
+- Falta el marcador `{{UNSUBSCRIBE_URL}}` — el enlace de baja no funcionará.
 - El contenido es mucho más corto que la última versión guardada —
   el típico `Ctrl+A` accidental.
 
@@ -303,6 +384,21 @@ registra con `console.error` e incluye la respuesta real de la API.
 ### «El boletín aún no está habilitado» en el pie de la tienda
 - Faltan las tablas `subscribers` o `settings`. Ejecuta la migración.
 
+### El enlace de baja responde `401 Unauthorized`
+- La función `unsubscribe` tiene **Verify JWT activado**. Desactívalo:
+  Edge Functions → `unsubscribe` → Settings → **Verify JWT** → off (Paso 3).
+
+### El enlace de baja dice «Este enlace no es válido»
+- El enlace está **cortado o incompleto** (algunos clientes de correo lo
+  hacen). Copia la URL completa del correo.
+- O la **clave de servicio de Supabase cambió** (raro; solo si rotaste las
+  llaves): los enlaces antiguos dejan de firmarse igual. El siguiente
+  boletín ya llevará enlaces válidos.
+
+### El enlace de baja no aparece en el correo
+- El HTML en el editor no contiene `{{UNSUBSCRIBE_URL}}`. Restaura la
+  plantilla original desde el panel (botón «Restaurar plantilla original»).
+
 ### Revisar el historial
 - `newsletter_history` guarda cada boletín enviado (asunto, HTML y
   número de destinatarios). Útil para auditar desde el panel.
@@ -352,6 +448,16 @@ Cada suscriptor recibe **su propio mensaje**: nunca se pone a todos en el
 mismo `To`, así que nadie ve la lista de los demás (algo que sí pasaría
 si se mandara en un solo envío).
 
+### ¿Y el enlace de baja, que no pide JWT?
+
+La función `unsubscribe` va sin JWT (el navegador del suscriptor no puede
+enviar cabeceras de Supabase), pero **cada enlace lleva una firma
+HMAC-SHA256** del correo del destinatario, calculada con la clave de
+servicio. Sin esa clave no se puede fabricar un enlace válido, así que
+nadie puede dar de baja a un tercero. Y el GET solo muestra una página de
+confirmación: **borra únicamente el POST** del botón, que los escáneres
+de correo no envían.
+
 ---
 
 ## Límites
@@ -378,7 +484,8 @@ si se mandara en un solo envío).
 
 **Supabase**
 - [ ] Secret `BREVO_API_KEY` guardado
-- [ ] Función `send-email` desplegada (con guion)
+- [ ] Función `send-email` desplegada (con guion, con Verify JWT activado)
+- [ ] Función `unsubscribe` desplegada (con guion, con **Verify JWT desactivado**)
 - [ ] Prueba desde el dashboard devuelve `"ok": true`
 
 **Panel**
@@ -386,6 +493,7 @@ si se mandara en un solo envío).
 - [ ] Suscribirse en el pie → llega el email de bienvenida
 - [ ] Enviar el boletín → llega a los suscriptores (incluidos terceros)
 - [ ] Revisar `newsletter_history` → aparece el envío
+- [ ] En el correo, «Darse de baja» → abre la confirmación → baja al suscriptor
 
 **Entrega**
 - [ ] Avisado al destinatario de que el correo está en Spam (si aplica)

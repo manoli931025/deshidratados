@@ -23,7 +23,7 @@ const FIELDS = [
 // Las plantillas por defecto viven en src/services/newsletter.js: una sola fuente.
 const NEWSLETTER_FIELDS = [
   { key: 'newsletter_subject', label: 'Asunto del boletín', type: 'text', help: 'Lo que aparece en el asunto del email.', default: DEFAULT_SUBJECT },
-  { key: 'newsletter_html', label: 'Contenido HTML del boletín', type: 'textarea', help: 'HTML completo. Puedes usar {nombre} para personalizar (no está implementado aún).', default: DEFAULT_HTML }
+  { key: 'newsletter_html', label: 'Contenido HTML del boletín', type: 'textarea', help: 'HTML completo. En el enlace de baja usa href="{{UNSUBSCRIBE_URL}}": el sistema lo sustituye por un enlace personalizado en cada correo. Puedes usar {nombre} para personalizar (no está implementado aún).', default: DEFAULT_HTML }
 ];
 
 // Cada documento legal vive en una clave propia de `settings`.
@@ -155,6 +155,13 @@ function validateNewsletter({ subject, html, baseline }) {
   if (!/darse de baja|unsubscribe/i.test(content)) {
     warnings.push(
       'Falta el enlace de baja ("Darse de baja"): afecta a la reputación del remitente y a la normativa.'
+    );
+  } else if (!content.includes('{{UNSUBSCRIBE_URL}}')) {
+    // El texto está, pero sin el marcador el enlace no hará nada: es el
+    // síntoma típico de haber tocado la plantilla a mano.
+    warnings.push(
+      'El texto de "Darse de baja" está, pero falta {{UNSUBSCRIBE_URL}} en el href: ' +
+      'el enlace no funcionará. Restaura la plantilla original para ver un ejemplo.'
     );
   }
 
@@ -292,7 +299,13 @@ export default function Settings() {
 
   // Vista previa con debounce de 300ms.
   useEffect(() => {
-    const t = setTimeout(() => setPreviewHtml(newsletter.newsletter_html || ''), 300);
+    const t = setTimeout(() => {
+      // {{UNSUBSCRIBE_URL}} es un marcador del servidor: en la vista previa
+      // lo dejamos como ancla inerte para que no rompa el iframe.
+      const preview = (newsletter.newsletter_html || '')
+        .split('{{UNSUBSCRIBE_URL}}').join('#');
+      setPreviewHtml(preview);
+    }, 300);
     return () => clearTimeout(t);
   }, [newsletter.newsletter_html]);
 

@@ -6,6 +6,11 @@
 //
 // El remitente se resuelve dentro de la función, leyendo
 // settings → newsletter_from. El cliente no puede cambiarlo.
+//
+// Marcador de baja: las plantillas usan href="{{UNSUBSCRIBE_URL}}".
+// La Edge Function lo sustituye en cada email por un enlace firmado
+// personalizado que llama a la función "unsubscribe". No lo borres del
+// HTML si quieres que el enlace de baja funcione.
 
 const EDGE_URL = `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/send-email`;
 
@@ -248,7 +253,7 @@ export const DEFAULT_HTML = `<!DOCTYPE html>
     </div>
     <div class="footer">
       <p>Hecho con ❤️ para Solaria · Deshidratados</p>
-      <p>¿No quieres recibir más emails? <a href="#">Darse de baja</a></p>
+      <p>¿No quieres recibir más emails? <a href="{{UNSUBSCRIBE_URL}}">Darse de baja</a></p>
     </div>
     <div class="unsubscribe">
       <p>Este es un email automático. No responder a este mensaje.</p>
@@ -294,7 +299,7 @@ const WELCOME_HTML = `<!DOCTYPE html>
     </div>
     <div class="footer">
       <p>Hecho con ❤️ para Solaria · Deshidratados</p>
-      <p>¿No quieres recibir más emails? <a href="#">Darse de baja</a></p>
+      <p>¿No quieres recibir más emails? <a href="{{UNSUBSCRIBE_URL}}">Darse de baja</a></p>
     </div>
   </div>
 </body>

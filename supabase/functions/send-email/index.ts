@@ -8,6 +8,11 @@
 // Respuesta:
 //   { ok, sent, failed, remaining, errors: [{email, error}] }
 //
+// Enlace de baja: si el HTML contiene el marcador {{UNSUBSCRIBE_URL}},
+// se sustituye en CADA email por una URL firmada personalizada que llama
+// a la función "unsubscribe". El historial guarda el HTML original, con
+// el marcador, para poder restaurarlo en el panel.
+//
 // El campo "from" SIEMPRE se lee de la tabla settings (newsletter_from),
 // nunca del cliente: así nadie puede suplantar el remitente.
 //
@@ -35,6 +40,12 @@ const corsHeaders = {
 // timeout de Supabase. El frontend va troceando solo y sigue el progreso
 // real del servidor.
 const MAX_PER_CALL = 50;
+
+// Marcador que el frontend (y las plantillas por defecto) dejan en el
+// enlace de baja. Se sustituye en cada email por una URL firmada con el
+// correo del destinatario; la función "unsubscribe" valida la firma antes
+// de borrar, así que nadie puede dar de baja a un tercero.
+const UNSUB_PLACEHOLDER = '{{UNSUBSCRIBE_URL}}';
 
 /** Error con mensaje ya redactado para el usuario final. */
 class EmailError extends Error {}
@@ -99,7 +110,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const map: Record<string, string> = {};
-    (settingsRows || []).forEach(r => { map[r.key] = r.value; });
+    (settingsRows || []).forEach((r: { key: string; value: string }) => { map[r.key] = r.value; });
 
     const from = (map.newsletter_from || '').trim();
     if (!from) {
@@ -133,11 +144,17 @@ Deno.serve(async (req: Request) => {
 
     for (const recipient of batch) {
       try {
+        // Enlace de baja personalizado por destinatario. Se calcula sobre
+        // el HTML original en cada vuelta: nunca sobre el ya sustituido.
+        const personalizedHtml = html.includes(UNSUB_PLACEHOLDER)
+          ? html.split(UNSUB_PLACEHOLDER).join(await makeUnsubscribeUrl(recipient, serviceKey, supabaseUrl))
+          : html;
+
         const payload: Record<string, unknown> = {
           sender,
           to: [{ email: recipient }], // uno a uno: nadie ve la lista de los demás
           subject,
-          htmlContent: html,
+          htmlContent: personalizedHtml,
         };
         if (replyAddress) {
           payload.replyTo = { email: replyAddress };
@@ -209,6 +226,34 @@ function parseSender(from: string): { email: string; name?: string } {
   }
 
   return { email: from.trim() };
+}
+
+/**
+ * URL de baja personalizada del destinatario.
+ * La función "unsubscribe" recalcula este HMAC y solo borra si coincide,
+ * así que un enlace manipulado no sirve para dar de baja a nadie.
+ */
+async function makeUnsubscribeUrl(
+  email: string,
+  serviceKey: string,
+  supabaseUrl: string
+): Promise<string> {
+  const sig = await hmacHex(email, serviceKey);
+  return `${supabaseUrl}/functions/v1/unsubscribe?e=${encodeURIComponent(email)}&s=${sig}`;
+}
+
+/** HMAC-SHA256 en hexadecimal del correo, con la clave de servicio. */
+async function hmacHex(email: string, key: string): Promise<string> {
+  const enc = new TextEncoder();
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(key),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', cryptoKey, enc.encode(email));
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**

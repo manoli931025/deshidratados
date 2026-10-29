@@ -92,7 +92,7 @@ y solo necesita el dashboard, sin instalar la CLI:
 
 1. Crear cuenta en Brevo y **verificar el remitente** (SMTP & API → Senders).
 2. Guardar `BREVO_API_KEY` en **Edge Functions → Secrets**.
-3. Ejecutar `supabase/upgrade-2026-10-29.sql` (fija el remitente) y desplegar la función `send-email` (**Edge Functions → Deploy a new function**, nombre `send-email`).
+3. Ejecutar `supabase/upgrade-2026-10-29.sql` (fija el remitente) y desplegar las funciones `send-email` y `unsubscribe` (**Edge Functions → Deploy a new function**; `unsubscribe` con *Verify JWT* **desactivado**, para que funcione el enlace «Darse de baja»).
 4. Rellenar *Email remitente del boletín* en el panel → **Configuración**.
 
 > El remitente debe ser una dirección **verificada en Brevo** (p. ej.
