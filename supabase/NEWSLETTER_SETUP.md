@@ -249,23 +249,40 @@ https://TU-PROYECTO.supabase.co/functions/v1/unsubscribe?e=roger@…&s=firma-hma
 
 El flujo del suscriptor:
 
-1. Pulsa «Darse de baja» → abre una **página de confirmación** con un botón.
-2. Pulse «Sí, darme de baja» → la función `unsubscribe` **borra su fila** de
-   `subscribers` y muestra «¡Listo!».
-3. Deja de recibir boletines en el siguiente envío.
+1. Pulsa «Darse de baja» → la función `unsubscribe` **redirige** (302) a
+   la página de la tienda `unsubscribe.html` (GitHub Pages).
+2. La página muestra la **confirmación** con un botón.
+3. Pulse «Sí, darme de baja» → la página llama por POST a la función,
+   que **borra su fila** de `subscribers`.
+4. La página muestra «¡Listo!» y deja de recibir boletines en el
+   siguiente envío.
+
+### ¿Por qué la página está en la tienda y no en la función?
+
+Porque **Supabase no permite que las funciones sirvan páginas HTML**: el
+runtime convierte cualquier respuesta `text/html` en `text/plain` (con
+`CSP: sandbox` y `nosniff`) como protección anti-phishing del dominio
+`*.supabase.co`, y el navegador mostraría el HTML como texto crudo.
+La interfaz vive por eso en `public/unsubscribe.html`, que GitHub Pages
+publica junto con el resto del sitio.
 
 ### ¿Por qué hay una confirmación y no borra directamente?
 
 Porque **Gmail y Outlook precargan los enlaces** de los correos (escáneres
 de seguridad). Si el enlace borrara al abrirse, esas personas quedarían
-dadas de baja sin haber pulsado nada. Solo un POST (el botón) borra.
+dadas de baja sin haber pulsado nada. El GET solo redirige, la página
+muestra un botón, y el borrado ocurre en el POST — que los escáneres no
+ejecutan.
 
 ### Reglas para que funcione
 
 - **No borres el marcador** `{{UNSUBSCRIBE_URL}}` del HTML. La validación
   del panel avisa si el texto de baja está pero el marcador falta.
-- La función `unsubscribe` debe estar **desplegada** y con
+- La función `unsubscribe` debe estar **desplegada** (con el contenido
+  actual de `supabase/functions/unsubscribe/index.ts`) y con
   **Verify JWT desactivado** (Paso 3).
+- La página `unsubscribe.html` se publica **con el push a GitHub**: si
+  aún no has pusheado los cambios, el enlace dará 404 de GitHub Pages.
 - El historial guarda el HTML **con el marcador**, así que un boletín
   restaurado sigue siendo válido.
 - No hace falta configurar ningún secret nuevo: la firma usa la clave de
@@ -275,8 +292,8 @@ dadas de baja sin haber pulsado nada. Solo un POST (el botón) borra.
 
 1. Envía un boletín (o el correo de bienvenida) a tu correo.
 2. En el correo recibido, pulsa **«Darse de baja»** → debe abrirse la
-   página de confirmación con el botón.
-3. Pulsa **«Sí, darme de baja»** → sale la página de éxito.
+   página de confirmación de la tienda con el botón.
+3. Pulsa **«Sí, darme de baja»** → sale «¡Listo! Ya estás dado de baja».
 4. En `/admin` → el recuento de suscriptores baja al recargar la página.
 
 ---
@@ -394,6 +411,15 @@ registra con `console.error` e incluye la respuesta real de la API.
 - O la **clave de servicio de Supabase cambió** (raro; solo si rotaste las
   llaves): los enlaces antiguos dejan de firmarse igual. El siguiente
   boletín ya llevará enlaces válidos.
+
+### El enlace de baja da 404 (página de GitHub Pages)
+- Falta el **push a GitHub**: la página `unsubscribe.html` se publica con
+  el sitio. Espera a que termine el workflow de Actions y reintenta.
+
+### El enlace muestra el HTML como texto crudo
+- La función `unsubscribe` tiene una versión antigua desplegada (la que
+  servía la página ella misma). Vuelve a pegar el contenido actual de
+  `supabase/functions/unsubscribe/index.ts` y haz deploy.
 
 ### El enlace de baja no aparece en el correo
 - El HTML en el editor no contiene `{{UNSUBSCRIBE_URL}}`. Restaura la
