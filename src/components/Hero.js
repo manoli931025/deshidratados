@@ -2,7 +2,7 @@ import { useShop } from '../data/shop';
 import { useCurrency } from '../data/currency';
 
 export default function Hero() {
-  const { products } = useShop();
+  const { products, loading } = useShop();
   const { fmt } = useCurrency();
   const prices = products.flatMap(p => p.variants.map(v => v.price));
   const desde = prices.length ? Math.min(...prices) : 0;
@@ -29,10 +29,19 @@ export default function Hero() {
           </div>
         </div>
         <div className="collage">
-          {products.slice(0, 3).map((p, i) => (
-            <figure className={`polaroid p${i + 1}`} key={p.id}>
-              <img src={p.image} alt={p.name} />
-              <figcaption>{p.name.toLowerCase()} · {p.category}</figcaption>
+          {/* Mientras carga Supabase no pintamos ningún <img>: si no,
+              se veían las fotos de relleno (aleatorias) hasta que
+              llegaban las reales, y el collage "parpadeaba". */}
+          {(loading ? [null, null, null] : products.slice(0, 3)).map((p, i) => (
+            <figure className={`polaroid p${i + 1}`} key={i}>
+              {loading ? (
+                <div className="polaroid-sk" aria-hidden="true" />
+              ) : (
+                <>
+                  <img src={p.image} alt={p.name} />
+                  <figcaption>{p.name.toLowerCase()} · {p.category}</figcaption>
+                </>
+              )}
             </figure>
           ))}
           <div className="sun-badge" aria-hidden="true">

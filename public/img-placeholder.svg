@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
+  <!-- Imagen de relleno del catálogo de demostración: se ve mientras
+       Supabase carga los productos reales. Solaria · paleta de la tienda. -->
+  <rect width="600" height="600" fill="#f6f0e6"/>
+  <g stroke="#1E1710" stroke-width="10" stroke-linecap="round">
+    <line x1="300" y1="152" x2="300" y2="124"/>
+    <line x1="300" y1="368" x2="300" y2="396"/>
+    <line x1="192" y1="260" x2="164" y2="260"/>
+    <line x1="408" y1="260" x2="436" y2="260"/>
+    <line x1="223" y1="183" x2="203" y2="163"/>
+    <line x1="377" y1="337" x2="397" y2="357"/>
+    <line x1="377" y1="183" x2="397" y2="163"/>
+    <line x1="223" y1="337" x2="203" y2="357"/>
+  </g>
+  <circle cx="300" cy="260" r="84" fill="#C4531F"/>
+  <text x="300" y="478" font-family="monospace" font-size="36" letter-spacing="8" fill="#8a7a63" text-anchor="middle">SOLARIA</text>
+</svg>

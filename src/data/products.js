@@ -1,3 +1,9 @@
+// Catálogo de demostración: se muestra mientras Supabase carga (y si no
+// está configurado). Las imágenes son un SVG local de relleno: antes
+// apuntaban a picsum.photos, que devuelve fotos ALEATORIAS (playas,
+// paisajes, gente…) que se veían en el hero hasta que llegaban las reales.
+const PLACEHOLDER = 'img-placeholder.svg';
+
 export const products = [
   {
     id: 'mango',
@@ -8,7 +14,7 @@ export const products = [
     rating: 4.9,
     reviews: 312,
     badge: 'Más vendido',
-    image: 'https://picsum.photos/seed/mango-seco/600/600',
+    image: PLACEHOLDER,
     variants: [
       { id: '50', label: '50 g', price: 27 },
       { id: '100', label: '100 g', price: 45 },
@@ -23,7 +29,7 @@ export const products = [
     origin: 'Veracruz',
     rating: 4.7,
     reviews: 198,
-    image: 'https://picsum.photos/seed/pina-seca/600/600',
+    image: PLACEHOLDER,
     variants: [
       { id: '50', label: '50 g', price: 25 },
       { id: '100', label: '100 g', price: 42 },
@@ -38,7 +44,7 @@ export const products = [
     origin: 'Chihuahua',
     rating: 4.8,
     reviews: 251,
-    image: 'https://picsum.photos/seed/manzana-seca/600/600',
+    image: PLACEHOLDER,
     variants: [
       { id: '50', label: '50 g', price: 23 },
       { id: '100', label: '100 g', price: 38 },
@@ -54,7 +60,7 @@ export const products = [
     rating: 4.9,
     reviews: 289,
     badge: 'Favorito',
-    image: 'https://picsum.photos/seed/tomate-seco/600/600',
+    image: PLACEHOLDER,
     variants: [
       { id: '50', label: '50 g', price: 33 },
       { id: '100', label: '100 g', price: 55 },
@@ -69,7 +75,7 @@ export const products = [
     origin: 'Zacatecas',
     rating: 4.7,
     reviews: 122,
-    image: 'https://picsum.photos/seed/chile-ancho/600/600',
+    image: PLACEHOLDER,
     variants: [
       { id: '50', label: '50 g', price: 24 },
       { id: '100', label: '100 g', price: 40 },
@@ -85,7 +91,7 @@ export const products = [
     rating: 4.9,
     reviews: 341,
     badge: 'Nuevo',
-    image: 'https://picsum.photos/seed/trail-mix/600/600',
+    image: PLACEHOLDER,
     variants: [
       { id: '50', label: '50 g', price: 37 },
       { id: '100', label: '100 g', price: 62 },
