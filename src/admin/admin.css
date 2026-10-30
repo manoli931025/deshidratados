@@ -375,6 +375,16 @@
 /* Pedidos: agrupación y hints */
 .adm-order-group { margin-bottom: 24px; }
 .adm-group-title { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; font-size: 15px; }
+/* Filtro de fecha: segunda fila bajo los chips de estado */
+.adm-date-row { margin-top: -6px; }
+.adm-date-label { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--adm-mut); }
+.adm-date-input { font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid var(--adm-line); border-radius: 8px; background: #fff; color: var(--adm-ink); }
+/* Separador de día dentro de cada grupo de estado (colapsable) */
+.adm-day-sep { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; text-align: left; margin-top: 6px; padding-top: 8px; border: 0; border-top: 1px dashed var(--adm-line); background: none; cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 700; color: var(--adm-ink); }
+.adm-day-sep:hover { background: rgba(196, 83, 31, .05); }
+.adm-orders > .adm-day-sep:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
+.adm-day-arrow { color: var(--adm-accent); font-size: 11px; }
+.adm-day-total { margin-left: auto; color: var(--adm-accent); }
 .adm-badge.click { cursor: pointer; border: none; font-family: inherit; }
 .adm-badge.click:hover { filter: brightness(.95); }
 .adm-status-hint { margin: 6px 0 8px; padding: 8px 12px; background: var(--adm-bg); border: 1px dashed var(--adm-line); border-radius: 8px; font-size: 13px; color: var(--adm-mut); }
