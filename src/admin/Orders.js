@@ -1,7 +1,12 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { supabase, configured } from '../data/supabase';
-import { fmtTime, dayKey, dayPrefix, fmtDayLong, money, ORDER_STATUS, STATUS_CLASS, STATUS_HINTS, STATUS_NOTIFY } from './helpers';
+import { fmtDate, fmtTime, dayKey, dayPrefix, fmtDayLong, money, ORDER_STATUS, STATUS_CLASS, STATUS_HINTS, STATUS_NOTIFY } from './helpers';
 import Notice from './Notice';
+
+// Fecha en que el pedido adquirió su estado actual; si nunca cambió, la de
+// creación. Agrupar y filtrar por AQUÍ: un pedido que entra el lunes y se
+// confirma el martes debe salir en «Confirmado · martes», no en «lunes».
+const statusDate = (o) => o.status_updated_at || o.created_at;
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
@@ -98,7 +103,17 @@ export default function Orders() {
 
   const changeStatus = async (o, status) => {
     setBusy(o.id);
-    const { data, error } = await supabase.from('orders').update({ status }).eq('id', o.id).select();
+    // Marca CUÁNDO adquiere el pedido este estado: es la fecha por la que
+    // después se agrupa y se filtra (no la de creación).
+    const now = new Date().toISOString();
+    let res = await supabase.from('orders').update({ status, status_updated_at: now }).eq('id', o.id).select();
+    // Respaldo por si la columna aún no existe en la base (SQL pendiente).
+    let noCol = false;
+    if (res.error && String(res.error.message).includes('status_updated_at')) {
+      noCol = true;
+      res = await supabase.from('orders').update({ status }).eq('id', o.id).select();
+    }
+    const { data, error } = res;
     setBusy(null);
 
     // .select() devuelve [] si no se actualizó ninguna fila (p. ej. RLS o id inválido).
@@ -110,7 +125,7 @@ export default function Orders() {
 
     setErr('');
     // Actualización optimista: refleja el cambio al instante sin esperar la recarga.
-    setOrders(prev => prev.map(x => (x.id === o.id ? { ...x, status } : x)));
+    setOrders(prev => prev.map(x => (x.id === o.id ? { ...x, status, ...(noCol ? {} : { status_updated_at: now }) } : x)));
     notifyCustomer(o, status);
 
     load();
@@ -187,11 +202,12 @@ export default function Orders() {
     }
   }, [datePreset, from, to]);
 
-  // Pedidos que pasan la búsqueda de texto Y el filtro de fecha.
+  // Pedidos que pasan la búsqueda de texto Y el filtro de fecha
+  // (la fecha del filtro es el día en que adquirió su estado actual).
   const inScope = useMemo(() => {
     if (!dateRange) return searched;
     return searched.filter(o => {
-      const k = dayKey(o.created_at);
+      const k = dayKey(statusDate(o));
       return k >= dateRange[0] && k <= dateRange[1];
     });
   }, [searched, dateRange]);
@@ -209,17 +225,23 @@ export default function Orders() {
     const groups = {};
     filtered.forEach(o => { (groups[o.status] = groups[o.status] || []).push(o); });
     // ORDER_STATUS ya empieza con 'Nuevo', así que ese grupo queda primero.
-    return ORDER_STATUS.filter(s => groups[s]).map(s => ({ status: s, list: groups[s] }));
+    // Dentro de cada grupo, orden por fecha de estado (no de creación): así
+    // los tramos por día quedan contiguos y el más reciente, arriba.
+    return ORDER_STATUS.filter(s => groups[s]).map(s => ({
+      status: s,
+      list: groups[s].sort((a, b) => new Date(statusDate(b)) - new Date(statusDate(a)))
+    }));
   }, [inScope, filter]);
 
   const visible = grouped.reduce((n, g) => n + g.list.length, 0);
   const filtersActive = Boolean(search.trim()) || filter !== 'all' || datePreset !== 'todo';
 
-  // Divide la lista (ordenada por fecha descendente) en tramos por día local.
+  // Divide la lista (ya ordenada por fecha de estado descendente) en tramos
+  // por día local — el día en que el pedido adquirió su estado actual.
   const splitByDay = (list) => {
     const segs = [];
     list.forEach(o => {
-      const k = dayKey(o.created_at) || 'sin-fecha';
+      const k = dayKey(statusDate(o)) || 'sin-fecha';
       const last = segs[segs.length - 1];
       if (last && last.key === k) last.list.push(o);
       else segs.push({ key: k, list: [o] });
@@ -343,7 +365,10 @@ export default function Orders() {
                     <div className="adm-card adm-order" key={o.id}>
                       <div className="adm-order-head">
                         <div>
-                          <b>{o.customer_name}</b> · <span className="adm-muted">{fmtTime(o.created_at)}</span>
+                          <b>{o.customer_name}</b> · <span className="adm-muted">{fmtTime(statusDate(o))}</span>
+                          {dayKey(statusDate(o)) !== dayKey(o.created_at) && (
+                            <span className="adm-muted small"> · recibido {fmtDate(o.created_at)}</span>
+                          )}
                           {editPhone === o.id ? (
                             <span className="adm-phone-edit">
                               {' · '}
