@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../data/supabase';
 import { SHOP } from '../data/config';
 import { LEGAL } from '../data/legalContent';
-import { sendNewsletter, DEFAULT_SUBJECT, DEFAULT_HTML } from '../services/newsletter';
+import { sendNewsletter, DEFAULT_SUBJECT, DEFAULT_BODY, buildNewsletterHtml } from '../services/newsletter';
+import { renderMarkdown } from '../components/LegalPage';
 import Notice from './Notice';
 
 const FIELDS = [
@@ -19,11 +20,15 @@ const FIELDS = [
   { key: 'rateEUR', label: 'EUR por 1 USD', type: 'number', help: 'Tipo de cambio manual hacia el euro.' }
 ];
 
-// Configuración del boletín (HTML y asunto).
-// Las plantillas por defecto viven en src/services/newsletter.js: una sola fuente.
+// Configuración del boletín. El contenido es TEXTO LLANO (lo que sabe
+// escribir cualquiera): el HTML con el estilo de Solaria y el enlace de
+// «Darse de baja» lo construye el sistema al previsualizar y al enviar
+// (buildNewsletterHtml en src/services/newsletter.js).
 const NEWSLETTER_FIELDS = [
   { key: 'newsletter_subject', label: 'Asunto del boletín', type: 'text', help: 'Lo que aparece en el asunto del email.', default: DEFAULT_SUBJECT },
-  { key: 'newsletter_html', label: 'Contenido HTML del boletín', type: 'textarea', help: 'HTML completo. En el enlace de baja usa href="{{UNSUBSCRIBE_URL}}": el sistema lo sustituye por un enlace personalizado en cada correo. Puedes usar {nombre} para personalizar (no está implementado aún).', default: DEFAULT_HTML }
+  // La clave se llama newsletter_html por compatibilidad con lo ya guardado;
+  // su valor desde ahora es texto llano (ver htmlToBody al cargar).
+  { key: 'newsletter_html', label: 'Mensaje del boletín', type: 'textarea', help: 'Escríbelo con normalidad, como un mensaje. Un renglón en blanco separa párrafos, "#" inicia un título, "-" una lista, **negritas** y [enlaces](https://…) también funcionan. El diseño de Solaria y el enlace de «Darse de baja» se añaden solos.', default: DEFAULT_BODY }
 ];
 
 // Cada documento legal vive en una clave propia de `settings`.
@@ -59,61 +64,16 @@ const NEWSLETTER_DEFAULTS = NEWSLETTER_FIELDS.reduce((acc, f) => ({ ...acc, [f.k
 // Se ejecuta al pulsar "Enviar": primero los ERRORS, que bloquean el envío,
 // y después los AVISOS, que se muestran en la confirmación y decide el admin.
 
-// Etiquetas void: nunca llevan cierre, y contarlas daría falsos positivos.
-const VOID_TAGS = new Set([
-  'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
-  'link', 'meta', 'param', 'source', 'track', 'wbr'
-]);
-
 /**
- * Etiquetas de bloque que quedaron sin cerrar.
+ * Comprueba asunto y mensaje antes de enviar.
  *
- * DOMParser "arregla" el HTML él solo, así que no sirve para detectar esto:
- * hay que recorrerlo con una pila. Un `</div>` que falta hace que Gmail se
- * trague el resto del contenido, que es justo lo que queremos evitar.
- *
- * Es una heurística a propósito: sirve para avisar, no para validar sintaxis.
- */
-function findUnclosedTags(html) {
-  const stack = [];
-  const unclosed = new Set();
-  const re = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)\b[^>]*?(\/?)>/g;
-  let m;
-
-  while ((m = re.exec(html)) !== null) {
-    const isClosing = m[1] === '/';
-    const tag = m[2].toLowerCase();
-    const selfClosed = m[3] === '/';
-
-    if (VOID_TAGS.has(tag) || selfClosed) continue;
-
-    if (isClosing) {
-      const idx = stack.lastIndexOf(tag);
-      // Cierre sin apertura suelta: lo ignora, ya lo gestiona el parser.
-      if (idx === -1) continue;
-      // Clave: todo lo que haya por ENCIMA quedó sin cerrar. Si no lo
-      // anotamos aquí, el </body> de cierre se lo traga en silencio y el
-      // desbalance de un </div> perdido nunca se detecta (era el bug que
-      // hacía que el fallo no se reportara nunca).
-      for (let i = idx + 1; i < stack.length; i++) unclosed.add(stack[i]);
-      stack.length = idx;
-    } else {
-      stack.push(tag);
-    }
-  }
-
-  // Lo que siga en la pila al terminar tampoco se cerró nunca.
-  for (const tag of stack) unclosed.add(tag);
-
-  return [...unclosed];
-}
-
-/**
- * Comprueba asunto y HTML antes de enviar.
+ * El campo es TEXTO LLANO: el HTML, el estilo y el enlace de baja los genera
+ * el sistema (buildNewsletterHtml), así que ya no hay etiquetas que romperse
+ * ni marcas que recordar.
  *
  * @param {object} opts
  * @param {string} opts.subject  Asunto actual
- * @param {string} opts.html     Contenido actual
+ * @param {string} opts.body     Mensaje actual (texto llano)
  * @param {string} opts.baseline Última versión GUARDADA. Se usa para detectar
  *                               borrados accidentales (el típico Ctrl+A),
  *                               comparando contra lo que había y no contra la
@@ -121,7 +81,7 @@ function findUnclosedTags(html) {
  *                               intencionado grande solo avisa, no molesta.
  * @returns {{errors: string[], warnings: string[]}}
  */
-function validateNewsletter({ subject, html, baseline }) {
+function validateNewsletter({ subject, body, baseline }) {
   const errors = [];
   const warnings = [];
 
@@ -129,51 +89,58 @@ function validateNewsletter({ subject, html, baseline }) {
     errors.push('El asunto del boletín está vacío.');
   }
 
-  const content = String(html || '');
+  const content = String(body || '');
   if (!content.trim()) {
-    errors.push('El contenido del boletín está vacío.');
-    return { errors, warnings };
-  }
-
-  const doc = new DOMParser().parseFromString(content, 'text/html');
-  if (!doc.body || !doc.body.textContent.trim()) {
-    errors.push('El contenido no tiene texto visible.');
-  }
-
-  const unclosed = findUnclosedTags(content);
-  if (unclosed.length > 0) {
-    warnings.push(
-      `Etiquetas sin cerrar: ${unclosed.join(', ')}. ` +
-      'Los clientes de correo suelen tragar el resto del contenido.'
-    );
-  }
-
-  if (!/<style[\s>]/i.test(content)) {
-    warnings.push('No hay bloque <style>: el boletín llegará sin diseño.');
-  }
-
-  if (!/darse de baja|unsubscribe/i.test(content)) {
-    warnings.push(
-      'Falta el enlace de baja ("Darse de baja"): afecta a la reputación del remitente y a la normativa.'
-    );
-  } else if (!content.includes('{{UNSUBSCRIBE_URL}}')) {
-    // El texto está, pero sin el marcador el enlace no hará nada: es el
-    // síntoma típico de haber tocado la plantilla a mano.
-    warnings.push(
-      'El texto de "Darse de baja" está, pero falta {{UNSUBSCRIBE_URL}} en el href: ' +
-      'el enlace no funcionará. Restaura la plantilla original para ver un ejemplo.'
-    );
+    errors.push('El mensaje del boletín está vacío.');
   }
 
   const prev = String(baseline || '');
-  if (prev.trim() && content.length < prev.length * 0.5) {
+  if (content.trim() && prev.trim() && content.length < prev.length * 0.5) {
     warnings.push(
-      `El contenido es mucho más corto que la última versión guardada ` +
+      `El mensaje es mucho más corto que la última versión guardada ` +
       `(${content.length} de ${prev.length} caracteres).`
     );
   }
 
   return { errors, warnings };
+}
+
+/**
+ * Convierte un boletín en HTML (guardado en las versiones antiguas o
+ * restaurado del historial) a texto llano para el editor.
+ * Usa el contenido de .content si existe — ahí vive el cuerpo real — y
+ * devuelve texto con ## / - / párrafos, el mismo formato que el editor.
+ */
+function htmlToBody(html) {
+  if (!html) return '';
+  const trimmed = String(html).trim();
+  // Heurística: si no parece HTML, así queda tal cual.
+  if (!/<\/?(html|body|head|div|p|h1|h2|h3|ul|ol|li|style|table|a)\b|<!doctype/i.test(trimmed)) {
+    return trimmed;
+  }
+  try {
+    const doc = new DOMParser().parseFromString(trimmed, 'text/html');
+    const root = doc.querySelector('.content') || doc.body;
+    const out = [];
+    root.childNodes.forEach(node => {
+      const tag = node.tagName ? node.tagName.toLowerCase() : '';
+      const text = (node.textContent || '').replace(/\s+/g, ' ').trim();
+      if (!text) return;
+      if (/^h[1-3]$/.test(tag)) {
+        out.push(`## ${text}`);
+      } else if (tag === 'ul' || tag === 'ol') {
+        node.querySelectorAll('li').forEach(li => {
+          const t = (li.textContent || '').replace(/\s+/g, ' ').trim();
+          if (t) out.push(`- ${t}`);
+        });
+      } else {
+        out.push(text);
+      }
+    });
+    return out.join('\n\n') || trimmed;
+  } catch {
+    return trimmed;
+  }
 }
 
 /** Fecha corta para el historial; si el formato falla, devuelve el texto crudo. */
@@ -210,9 +177,12 @@ export default function Settings() {
   const [history, setHistory] = useState([]);
   const [historyErr, setHistoryErr] = useState('');
   const [historyBusy, setHistoryBusy] = useState(false);
-  // La vista previa va con debounce: reparsear el HTML completo en cada
-  // pulsación del textarea es un gasto innecesario.
-  const [previewHtml, setPreviewHtml] = useState(NEWSLETTER_DEFAULTS.newsletter_html || '');
+  const [historyOpen, setHistoryOpen] = useState(false); // historial plegado por defecto
+  // La vista previa va con debounce: reparsear el mensaje en cada pulsación
+  // del textarea es un gasto innecesario. Se inicializa ya construida para
+  // no repetir renderMarkdown en cada render del componente.
+  const [previewHtml, setPreviewHtml] = useState(() =>
+    buildNewsletterHtml(renderMarkdown(NEWSLETTER_DEFAULTS.newsletter_html || '')));
 
   useEffect(() => {
     supabase.from('settings').select('key, value')
@@ -231,11 +201,14 @@ export default function Settings() {
           return next;
         });
         // En boletín: cargamos lo guardado (si no está vacío) y lo tomamos
-        // como referencia para las comparaciones de validación.
+        // como referencia para las comparaciones de validación. Lo que esté
+        // en HTML (versiones antiguas) se convierte a texto llano.
         const loaded = { ...NEWSLETTER_DEFAULTS };
         NEWSLETTER_FIELDS.forEach(f => {
           const stored = map[f.key];
-          if (stored !== undefined && String(stored).trim() !== '') loaded[f.key] = stored;
+          if (stored !== undefined && String(stored).trim() !== '') {
+            loaded[f.key] = f.key === 'newsletter_html' ? (htmlToBody(stored) || stored) : stored;
+          }
         });
         setNewsletter(loaded);
         setSavedHtml(loaded.newsletter_html || '');
@@ -297,14 +270,11 @@ export default function Settings() {
 
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
-  // Vista previa con debounce de 300ms.
+  // Vista previa con debounce de 300ms: el texto llano se convierte en HTML
+  // con la plantilla de Solaria — exactamente lo que se enviará.
   useEffect(() => {
     const t = setTimeout(() => {
-      // {{UNSUBSCRIBE_URL}} es un marcador del servidor: en la vista previa
-      // lo dejamos como ancla inerte para que no rompa el iframe.
-      const preview = (newsletter.newsletter_html || '')
-        .split('{{UNSUBSCRIBE_URL}}').join('#');
-      setPreviewHtml(preview);
+      setPreviewHtml(buildNewsletterHtml(renderMarkdown(newsletter.newsletter_html || '')));
     }, 300);
     return () => clearTimeout(t);
   }, [newsletter.newsletter_html]);
@@ -342,7 +312,7 @@ export default function Settings() {
 
     const { errors, warnings: warns } = validateNewsletter({
       subject: newsletter.newsletter_subject,
-      html: newsletter.newsletter_html,
+      body: newsletter.newsletter_html,
       baseline: savedHtml
     });
 
@@ -387,9 +357,11 @@ export default function Settings() {
       }
 
       // 3) Enviar (el servicio trocea internamente en lotes de 50).
+      // El texto llano viaja envuelto en la plantilla de Solaria, con el
+      // enlace de baja que la Edge Function personaliza en cada correo.
       const result = await sendNewsletter(emails, {
         subject: newsletter.newsletter_subject,
-        html: newsletter.newsletter_html
+        html: buildNewsletterHtml(renderMarkdown(newsletter.newsletter_html || ''))
       });
 
       if (result.failed > 0) {
@@ -417,7 +389,7 @@ export default function Settings() {
     setNewsletter(n => ({
       ...n,
       newsletter_subject: DEFAULT_SUBJECT,
-      newsletter_html: DEFAULT_HTML
+      newsletter_html: DEFAULT_BODY
     }));
     setValidationErrors([]);
     setConfirming(false);
@@ -431,7 +403,7 @@ export default function Settings() {
     setNewsletter(n => ({
       ...n,
       newsletter_subject: item.subject,
-      newsletter_html: item.html
+      newsletter_html: htmlToBody(item.html) || item.html
     }));
     setValidationErrors([]);
     setConfirming(false);
@@ -464,7 +436,9 @@ export default function Settings() {
     if (!window.confirm('¿Borrar todo el historial de envíos? No se puede deshacer.')) return;
     setHistoryErr('');
     setHistoryBusy(true);
-    const { error } = await supabase.from('newsletter_history').delete();
+    // PostgREST exige siempre una condición en DELETE: "id IS NOT NULL"
+    // cumple (el id es la clave primaria, nunca nulo) y borra todo.
+    const { error } = await supabase.from('newsletter_history').delete().not('id', 'is', null);
     setHistoryBusy(false);
     if (error) { setHistoryErr(`No se pudo borrar el historial: ${error.message}`); return; }
     loadHistory();
@@ -578,7 +552,8 @@ export default function Settings() {
             {NEWSLETTER_FIELDS.find(f => f.type === 'textarea').label}
             <textarea
               rows={20}
-              spellCheck={false}
+              spellCheck={true}
+              placeholder="Escribe aquí tu mensaje…"
               value={newsletter.newsletter_html ?? ''}
               onChange={e => {
                 setNewsletter(n => ({ ...n, newsletter_html: e.target.value }));
@@ -696,9 +671,14 @@ export default function Settings() {
         </div>
         {history.length > 0 && (
           <div className="adm-head-actions">
-            <button type="button" className="adm-linkbtn danger" onClick={clearHistory} disabled={historyBusy}>
-              Borrar todo
+            <button type="button" className="adm-linkbtn" onClick={() => setHistoryOpen(o => !o)}>
+              {historyOpen ? 'Ocultar historial' : `Ver historial (${history.length})`}
             </button>
+            {historyOpen && (
+              <button type="button" className="adm-linkbtn danger" onClick={clearHistory} disabled={historyBusy}>
+                Borrar todo
+              </button>
+            )}
           </div>
         )}
       </header>
@@ -709,7 +689,7 @@ export default function Settings() {
       )}
       {history.length === 0 ? (
         <p className="adm-status-hint">Todavía no has enviado ningún boletín desde el panel.</p>
-      ) : (
+      ) : !historyOpen ? null : (
         <div className="adm-table-wrap">
           <table className="adm-table">
             <thead>

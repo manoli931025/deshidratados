@@ -51,6 +51,7 @@ export function Testimonials() {
   const [form, setForm] = useState({ author: '', comment: '', rating: 5, product_id: '' });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const [open, setOpen] = useState(false);
   const [err, setErr] = useState('');
 
@@ -60,7 +61,7 @@ export function Testimonials() {
     // El admin solo puede eliminarlas.
     supabase.from('reviews').select('*, products(name)')
       .order('created_at', { ascending: false })
-      .limit(6)
+      .limit(50)
       .then(({ data }) => { if (data && data.length) setReviews(data); });
   }, []);
 
@@ -98,6 +99,9 @@ export function Testimonials() {
       }))
     : QUOTES;
 
+  // Portada: solo las 3 reseñas más recientes; el resto tras «Ver más…».
+  const shown = showMore ? items : items.slice(0, 3);
+
   return (
     <section id="opiniones" className="section">
       <div className="wrap">
@@ -106,7 +110,7 @@ export function Testimonials() {
           <div><p className="eyebrow">Opiniones</p><h2>Lo que dicen los que ya probaron</h2></div>
         </header>
         <div className="quotes">
-          {items.map((q, i) => (
+          {shown.map((q, i) => (
             <Reveal key={q.who + i} delay={i * 120}>
               <blockquote className="quote" style={{ '--r': q.r }}>
                 {q.product && <span className="quote-product">{q.product}</span>}
@@ -117,6 +121,13 @@ export function Testimonials() {
             </Reveal>
           ))}
         </div>
+        {items.length > 3 && (
+          <div className="quotes-more">
+            <button className="btn" type="button" onClick={() => setShowMore(m => !m)}>
+              {showMore ? 'Ver menos' : `Ver más reseñas (${items.length - 3})…`}
+            </button>
+          </div>
+        )}
         <div className="review-cta">
           {sent ? (
             <p className="news-ok">☀ ¡Gracias! Tu reseña será visible tras su aprobación.</p>

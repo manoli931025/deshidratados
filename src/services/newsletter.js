@@ -212,7 +212,34 @@ export async function sendWelcomeEmail(email, options = {}) {
 
 export const DEFAULT_SUBJECT = '📰 Solaria · Boletín de ofertas';
 
-export const DEFAULT_HTML = `<!DOCTYPE html>
+// Mensaje por defecto del boletín en TEXTO LLANO (lo que escribe el admin).
+// El sistema lo envuelve en buildNewsletterHtml con el estilo de Solaria y
+// el enlace de «Darse de baja»: el admin nunca toca HTML.
+export const DEFAULT_BODY = `## Bienvenido al boletín de Solaria
+
+En este boletín encontrarás:
+
+- ✨ Nuevas presentaciones disponibles
+- 🎁 Ofertas especiales de temporada
+- 🌱 Tips para conservar tus deshidratados
+
+## ¿Qué encontrarás?
+
+Las frutas deshidratadas al 100% sin conservantes, listas para llevarte a cualquier lugar. Desde nuestros clásicos (mango, piña, papaya) hasta nuestras nuevas incorporaciones.
+
+## Consejo de la semana
+
+Guarda tus deshidratados en un lugar fresco y seco, lejos de la luz directa del sol. Así mantendrás su sabor y textura por más tiempo.`;
+
+/**
+ * Envuelve el contenido ya renderizado (HTML de renderMarkdown) en la
+ * plantilla de email de Solaria: estilos, cabecera y pie con el enlace de
+ * baja {{UNSUBSCRIBE_URL}} que la Edge Function personaliza en cada correo.
+ * @param {string} contentHtml - Cuerpo ya convertido a HTML
+ * @returns {string} HTML completo del email
+ */
+export function buildNewsletterHtml(contentHtml) {
+  return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -239,17 +266,7 @@ export const DEFAULT_HTML = `<!DOCTYPE html>
       <p>Tu boletín semanal de ofertas y novedades</p>
     </div>
     <div class="content">
-      <h2>Bienvenido al boletín de Solaria</h2>
-      <p>En este boletín encontrarás:</p>
-      <ul>
-        <li>✨ Nuevas presentaciones disponibles</li>
-        <li>🎁 Ofertas especiales de temporada</li>
-        <li>🌱 Tips para conservar tus deshidratados</li>
-      </ul>
-      <h2>¿Qué encontrarás?</h2>
-      <p>Las frutas deshidratadas al 100% sin conservantes, listas para llevarte a cualquier lugar. Desde nuestros clásicos (mango, piña, papaya) hasta nuestras nuevas incorporaciones.</p>
-      <h2>Consejo de la semana</h2>
-      <p>Guarda tus deshidratados en un lugar fresco y seco, lejos de la luz directa del sol. Así mantendrás su sabor y textura por más tiempo.</p>
+${contentHtml || ''}
     </div>
     <div class="footer">
       <p>Hecho con ❤️ para Solaria · Deshidratados</p>
@@ -261,6 +278,7 @@ export const DEFAULT_HTML = `<!DOCTYPE html>
   </div>
 </body>
 </html>`;
+}
 
 const WELCOME_HTML = `<!DOCTYPE html>
 <html>

@@ -171,6 +171,7 @@ nav.main a:hover::after{transform:scaleX(1);transform-origin:left}
 
 /* opiniones */
 .quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:1.8rem;align-items:start}
+.quotes-more{margin-top:1.8rem;text-align:center}
 .quote{background:var(--card);border:1.5px solid var(--ink);border-radius:12px;padding:2rem 1.7rem;position:relative;transform:rotate(var(--r));transition:transform .4s;box-shadow:6px 7px 0 rgba(30,23,16,.1)}
 .quote:hover{transform:rotate(0) translateY(-5px)}
 .quote::before{content:'“';position:absolute;top:-24px;left:12px;font-family:var(--disp);font-size:4.6rem;color:var(--terra);line-height:1}

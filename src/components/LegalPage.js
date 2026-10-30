@@ -26,7 +26,7 @@ const inline = (s) => esc(s)
   .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
     '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
 
-function renderMarkdown(src) {
+export function renderMarkdown(src) {
   const lines = String(src || '').replace(/\r\n/g, '\n').split('\n');
   const out = [];
   let list = null;
