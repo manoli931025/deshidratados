@@ -106,7 +106,7 @@ nav.main a:hover::after{transform:scaleX(1);transform-origin:left}
 .sun-badge{position:absolute;top:-20px;left:14%;width:118px;z-index:6}
 .sun-badge svg{animation:spin 26s linear infinite;display:block}
 @keyframes spin{to{transform:rotate(360deg)}}
-.sticker{position:absolute;left:38%;top:47%;z-index:7;background:var(--gold);border:2px solid var(--ink);padding:.4rem .8rem;font-family:var(--mono);font-weight:700;font-size:.85rem;transform:rotate(-8deg);box-shadow:3px 3px 0 var(--ink)}
+.sticker{position:absolute;left:38%;top:47%;z-index:7;background:rgba(255,252,244,.9);border:1.5px solid var(--ink);padding:.4rem .8rem;font-family:var(--mono);font-weight:700;font-size:.85rem;transform:rotate(-6deg);box-shadow:0 2px 6px rgba(30,23,16,.12)}
 
 /* marquesina */
 .marquee{overflow:hidden;background:var(--terra);border-block:1.5px solid var(--ink);padding:.8rem 0}

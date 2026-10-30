@@ -219,6 +219,7 @@ insert into public.settings (key, value) values
   ('instagram', '@solaria.seca'),
   ('hours',     E'Lun – Vie · 9:00 – 18:00\nSábado · 9:00 – 14:00\nDomingo · el sol descansa'),
   ('heroPromo', ''),
+  ('heroPromo', ''),
   ('currencyBase', 'USD'),
   ('rateCUP',      '250'),
   ('rateEUR',      '0.92'),

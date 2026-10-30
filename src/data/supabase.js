@@ -33,6 +33,7 @@ export function moneySettings(rows) {
     shopName: SHOP.name,
     whatsapp: SHOP.whatsapp,
     freeShip: String(SHOP.freeShip),
+  heroPromo: SHOP.heroPromo || '',
     email: SHOP.email,
     instagram: SHOP.instagram,
     hours: SHOP.hours,

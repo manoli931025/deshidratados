@@ -12,6 +12,7 @@ const FIELDS = [
   { key: 'whatsapp', label: 'Número de WhatsApp', type: 'text', help: 'Solo dígitos, con código de país. Cuba: 535…' },
   { key: 'freeShip', label: 'Envío gratis a partir de', type: 'number', help: 'Monto en la moneda base (la de los precios del catálogo).' },
   { key: 'heroPromo', label: 'Promoción del inicio', type: 'text', help: 'Texto que se superpone a las fotos del inicio (p. ej. «desde US$23» o «2x1 este fin de semana»). Déjalo vacío para el automático: «desde» + el precio más bajo del catálogo.' },
+  { key: 'heroPromo', label: 'Promoción del inicio', type: 'text', help: 'Texto que se superpone a las fotos del inicio (p. ej. «desde US$23» o «2x1 este fin de semana»). Déjalo vacío para el automático: «desde» + el precio más bajo del catálogo.' },
   { key: 'email', label: 'Correo de contacto', type: 'email', help: 'Aparece en el pie de página.' },
   { key: 'newsletter_from', label: 'Email remitente del boletín', type: 'text', help: 'Remitente que usa Brevo. Debe ser una dirección VERIFICADA en Brevo (SMTP & API → Senders). Admite nombre visible: "Solaria · Deshidratados <solaria024@gmail.com>".' },
   { key: 'instagram', label: 'Instagram', type: 'text', help: 'Con @ o con la URL completa. Déjalo vacío si no lo manejas.' },
