@@ -79,11 +79,18 @@ nav.main a:hover::after{transform:scaleX(1);transform-origin:left}
 .hero-mini{display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:2.2rem;font-family:var(--mono);font-size:.66rem;text-transform:uppercase;letter-spacing:.14em;color:var(--ink2)}
 .hero-mini span::before{content:'☀ ';color:var(--terra)}
 .collage{position:relative;min-height:520px}
-.polaroid{position:absolute;background:#FFFDF6;border:1.5px solid var(--ink);padding:10px 10px 12px;box-shadow:8px 10px 0 rgba(30,23,16,.14);transform:rotate(var(--r));transition:transform .45s cubic-bezier(.22,1,.36,1),box-shadow .45s}
-.polaroid:hover{transform:rotate(0) translateY(-8px);box-shadow:12px 16px 0 rgba(30,23,16,.18);z-index:9}
-.polaroid img{width:100%;aspect-ratio:var(--ar,4/5);object-fit:cover;animation:breathe 16s ease-in-out infinite alternate}
-.polaroid figcaption{font-family:var(--mono);font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--ink2);padding-top:8px}
-.polaroid-sk{width:100%;aspect-ratio:var(--ar,4/5);background:linear-gradient(100deg,#f6f0e6 38%,#fffdf6 50%,#f6f0e6 62%);background-size:200% 100%;animation:skShimmer 1.5s linear infinite}
+/* Estilo "papel fino": esquinas redondeadas, doble filete (borde exterior +
+   anillo interior) y sombra suave en capas en vez del bloque duro. */
+.polaroid{position:absolute;background:#FFFDF6;border:1.5px solid var(--ink);border-radius:16px;padding:11px 11px 9px;box-shadow:0 2px 6px rgba(30,23,16,.10),0 18px 34px rgba(30,23,16,.16),inset 0 0 0 3px #FFFDF6,inset 0 0 0 4px rgba(30,23,16,.38);transform:rotate(var(--r));transition:transform .45s cubic-bezier(.22,1,.36,1),box-shadow .45s}
+.polaroid:hover{transform:rotate(0) translateY(-8px);box-shadow:0 3px 8px rgba(30,23,16,.12),0 26px 46px rgba(30,23,16,.22),inset 0 0 0 3px #FFFDF6,inset 0 0 0 4px rgba(30,23,16,.38);z-index:9}
+/* Entrada escalonada de la foto (fundido + escala). Va en el <img> para no
+   chocar con la rotación del marco en hover; `backwards` la mantiene oculta
+   durante su retardo y, al terminar, libera la animación de "respiración". */
+.polaroid img{width:100%;aspect-ratio:var(--ar,4/5);object-fit:cover;border-radius:8px;animation:dealIn .9s cubic-bezier(.22,1,.36,1) var(--d,0s) backwards,breathe 16s ease-in-out 1s infinite alternate}
+@keyframes dealIn{from{opacity:0;transform:translateY(14px) scale(.94)}}
+.polaroid figcaption{font-family:var(--mono);font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--ink2);display:flex;align-items:baseline;gap:.55rem;border-top:1px dashed var(--line);margin-top:9px;padding-top:8px}
+.polaroid figcaption .pnum{color:var(--terra);font-weight:700;flex:none}
+.polaroid-sk{width:100%;aspect-ratio:var(--ar,4/5);border-radius:8px;background:linear-gradient(100deg,#f6f0e6 38%,#fffdf6 50%,#f6f0e6 62%);background-size:200% 100%;animation:skShimmer 1.5s linear infinite}
 @keyframes skShimmer{to{background-position:-200% 0}}
 /* Pantalla de carga inicial (BootLoader): tapa la tienda hasta que estén
    los datos y las imágenes principales, o hasta el tope de 4 s. */
@@ -94,13 +101,15 @@ nav.main a:hover::after{transform:scaleX(1);transform-origin:left}
 .boot-count{font-family:var(--mono);font-size:.72rem;color:var(--terracotta);margin:6px 0 0}
 @keyframes bootSpin{to{transform:rotate(360deg)}}
 @keyframes breathe{from{transform:scale(1)}to{transform:scale(1.1) translate(-1.5%,1.5%)}}
-.p1{width:55%;top:2%;right:0;--r:4deg;--ar:4/5;z-index:2}
-.p2{width:46%;bottom:8%;left:0;--r:-6deg;--ar:4/4.6;z-index:3}
-.p3{width:33%;right:6%;bottom:0;--r:8deg;--ar:4/3;z-index:4}
+.p1{width:55%;top:2%;right:0;--r:2.5deg;--ar:4/5;--d:.1s;z-index:2}
+.p2{width:46%;bottom:8%;left:0;--r:-3.5deg;--ar:4/4.6;--d:.28s;z-index:3}
+.p3{width:33%;right:6%;bottom:0;--r:4.5deg;--ar:4/3;--d:.46s;z-index:4}
 .sun-badge{position:absolute;top:-20px;left:14%;width:118px;z-index:6}
 .sun-badge svg{animation:spin 26s linear infinite;display:block}
 @keyframes spin{to{transform:rotate(360deg)}}
-.sticker{position:absolute;left:38%;top:47%;z-index:7;background:var(--gold);border:2px solid var(--ink);padding:.4rem .8rem;font-family:var(--mono);font-weight:700;font-size:.85rem;transform:rotate(-8deg);box-shadow:3px 3px 0 var(--ink)}
+/* Sticker de la promoción: mismo dorado, acabado "papel fino" y ancho
+   máximo para que cualquier texto editable entre bien. */
+.sticker{position:absolute;left:38%;top:47%;z-index:7;background:var(--gold);border:1.5px solid var(--ink);border-radius:14px;padding:.6rem 1rem;max-width:190px;text-align:center;font-family:var(--mono);font-weight:700;font-size:.85rem;line-height:1.35;transform:rotate(-6deg);box-shadow:0 2px 6px rgba(30,23,16,.12),0 12px 24px rgba(30,23,16,.18),inset 0 0 0 3px #FFFDF6,inset 0 0 0 4px rgba(30,23,16,.38)}
 
 /* marquesina */
 .marquee{overflow:hidden;background:var(--terra);border-block:1.5px solid var(--ink);padding:.8rem 0}

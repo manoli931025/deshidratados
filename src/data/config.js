@@ -7,6 +7,9 @@ export const SHOP = {
   email: 'hola@solaria.cu',
   instagram: '@solaria.seca',
   hours: 'Lun – Vie · 9:00 – 18:00\nSábado · 9:00 – 14:00\nDomingo · el sol descansa',
+  // Promoción que se superpone a las fotos del inicio (Hero).
+  // Vacío = cartel automático con el precio más bajo del catálogo.
+  heroPromo: '',
   // MULTI-MONEDA. Los precios del catálogo se guardan en `currencyBase`.
   // rateCUP = cuántos pesos cubanos vale 1 USD. rateEUR = cuántos euros vale 1 USD.
   // NO son automáticos: el negocio los ajusta desde /admin → Configuración.

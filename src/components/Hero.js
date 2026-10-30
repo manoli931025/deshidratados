@@ -2,7 +2,7 @@ import { useShop } from '../data/shop';
 import { useCurrency } from '../data/currency';
 
 export default function Hero() {
-  const { products, loading } = useShop();
+  const { products, loading, shop } = useShop();
   const { fmt } = useCurrency();
   const prices = products.flatMap(p => p.variants.map(v => v.price));
   const desde = prices.length ? Math.min(...prices) : 0;
@@ -39,7 +39,10 @@ export default function Hero() {
               ) : (
                 <>
                   <img src={p.image} alt={p.name} />
-                  <figcaption>{p.name.toLowerCase()} · {p.category}</figcaption>
+                  <figcaption>
+                    <span className="pnum">Nº 0{i + 1}</span>
+                    {p.name.toLowerCase()} · {p.category}
+                  </figcaption>
                 </>
               )}
             </figure>
@@ -59,7 +62,11 @@ export default function Hero() {
               </g>
             </svg>
           </div>
-          <span className="sticker">desde {fmt(desde)}</span>
+          {/* Texto editable desde Configuración («Promoción del inicio»);
+              si está vacío, se calcula solo con el precio más bajo. */}
+          <span className="sticker">
+            {(shop && String(shop.heroPromo || '').trim()) || `desde ${fmt(desde)}`}
+          </span>
         </div>
       </div>
     </section>

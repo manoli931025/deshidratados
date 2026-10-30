@@ -21,6 +21,7 @@ export function publicImageUrl(path) {
 export const SETTINGS_KEYS = [
   'shopName', 'whatsapp', 'freeShip',
   'email', 'instagram', 'hours',
+  'heroPromo',
   'currencyBase', 'rateCUP', 'rateEUR'
 ];
 
@@ -35,6 +36,7 @@ export function moneySettings(rows) {
     email: SHOP.email,
     instagram: SHOP.instagram,
     hours: SHOP.hours,
+    heroPromo: SHOP.heroPromo || '',
     currencyBase: SHOP.currencyBase,
     rateCUP: SHOP.rateCUP,
     rateEUR: SHOP.rateEUR
@@ -47,6 +49,7 @@ export function moneySettings(rows) {
     email: map.email,
     instagram: map.instagram,
     hours: map.hours,
+    heroPromo: map.heroPromo || '',
     currencyBase: map.currencyBase,
     rateCUP: map.rateCUP,
     rateEUR: map.rateEUR
