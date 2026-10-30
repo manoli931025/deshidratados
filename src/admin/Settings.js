@@ -48,6 +48,7 @@ const DEFAULTS = {
   whatsapp: SHOP.whatsapp,
   freeShip: String(SHOP.freeShip),
   heroPromo: SHOP.heroPromo || '',
+  heroPromo: SHOP.heroPromo || '',
   email: SHOP.email,
   newsletter_from: 'solaria024@gmail.com',
   instagram: SHOP.instagram,

@@ -39,10 +39,7 @@ export default function Hero() {
               ) : (
                 <>
                   <img src={p.image} alt={p.name} />
-                  <figcaption>
-                    <span className="pnum">Nº 0{i + 1}</span>
-                    {p.name.toLowerCase()} · {p.category}
-                  </figcaption>
+                  <figcaption>{p.name.toLowerCase()} · {p.category}</figcaption>
                 </>
               )}
             </figure>
@@ -62,11 +59,7 @@ export default function Hero() {
               </g>
             </svg>
           </div>
-          {/* Texto editable desde Configuración («Promoción del inicio»);
-              si está vacío, se calcula solo con el precio más bajo. */}
-          <span className="sticker">
-            {(shop && String(shop.heroPromo || '').trim()) || `desde ${fmt(desde)}`}
-          </span>
+          <span className="sticker">desde {fmt(desde)}</span>
         </div>
       </div>
     </section>
