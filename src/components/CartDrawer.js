@@ -51,7 +51,10 @@ export default function CartDrawer({ isOpen, onClose }) {
             <div className="cart-empty">
               <span className="big">☀</span>
               <p>Tu canasta está vacía.</p>
-              <button className="btn btn-primary" onClick={onClose}>Ver catálogo</button>
+              {/* Ancla real a la sección del catálogo: antes era un botón
+                  que solo cerraba el cajón sin llevar a ninguna parte.
+                  El scroll suave viene de `html{scroll-behavior:smooth}`. */}
+              <a className="btn btn-primary" href="#catalogo" onClick={onClose}>Ver catálogo</a>
             </div>
           ) : cart.map(item => (
             <div className="c-item" key={item.id + item.variant.id}>
