@@ -59,7 +59,11 @@ export default function Hero() {
               </g>
             </svg>
           </div>
-          <span className="sticker">desde {fmt(desde)}</span>
+          {/* Texto editable desde Configuración («Promoción del inicio»);
+              si está vacío, se calcula solo con el precio más bajo. */}
+          <span className="sticker">
+            {(shop && String(shop.heroPromo || '').trim()) || `desde ${fmt(desde)}`}
+          </span>
         </div>
       </div>
     </section>
